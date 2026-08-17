@@ -3,13 +3,14 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, GraduationCap, Dumbbell,
   CalendarDays, ClipboardCheck, Receipt, Wallet,
-  Bell, Settings, LogOut, Menu, X, Award,
+  Bell, Settings, LogOut, Menu, X, Award, MessageCircle, Calendar,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/admin/calendario", label: "Calendário", icon: Calendar },
   { to: "/admin/alunos", label: "Alunos", icon: Users },
   { to: "/admin/professores", label: "Professores", icon: GraduationCap },
   { to: "/admin/modalidades", label: "Modalidades", icon: Dumbbell },
@@ -19,6 +20,7 @@ const NAV = [
   { to: "/admin/graduacoes", label: "Graduações", icon: Award },
   { to: "/admin/planos", label: "Planos", icon: Wallet },
   { to: "/admin/financeiro", label: "Financeiro", icon: Receipt },
+  { to: "/admin/notificacoes", label: "WhatsApp", icon: MessageCircle },
   { to: "/admin/avisos", label: "Avisos", icon: Bell },
 ];
 

@@ -7,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Check, MessageCircle } from "lucide-react";
+import { Check, MessageCircle, Download } from "lucide-react";
 import { toast } from "sonner";
+import { createPdf, addTable, savePdf, brl as fmtBrl, dtBR } from "@/lib/pdf";
 
 const brl = (v) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels = { paid: "Pago", pending: "Pendente", overdue: "Vencido" };
@@ -55,11 +56,56 @@ export default function Financial() {
     overdue: overdue.reduce((a, b) => a + (b.final_value || b.value), 0),
   };
 
+  const exportInvoicesPdf = () => {
+    const doc = createPdf("Relatório de Mensalidades", `${invoices.length} mensalidades emitidas`);
+    const rows = invoices.map(i => [
+      studentName(i.student_id),
+      i.competency,
+      dtBR(i.due_date),
+      fmtBrl(i.final_value || i.value),
+      { paid: "Pago", pending: "Pendente", overdue: "Vencido" }[i.status] || i.status,
+      i.paid_at ? dtBR(i.paid_at) : "-",
+      i.payment_method || "-",
+    ]);
+    let y = addTable(doc, ["Aluno", "Competência", "Vencimento", "Valor", "Status", "Pago em", "Forma"], rows);
+    y += 20;
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Recebido: ${fmtBrl(totals.paid)}    A receber: ${fmtBrl(totals.pending)}    Inadimplência: ${fmtBrl(totals.overdue)}`, 40, y);
+    savePdf(doc, `mensalidades-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF gerado");
+  };
+
+  const exportOverduePdf = () => {
+    const doc = createPdf("Relatório de Inadimplência", `${overdue.length} títulos em atraso`);
+    const rows = overdue.map(i => [
+      i.student?.full_name || "-",
+      studentPhone(i.student_id),
+      i.competency,
+      dtBR(i.due_date),
+      fmtBrl(i.final_value || i.value),
+      `${i.days_late} dias`,
+    ]);
+    addTable(doc, ["Aluno", "Telefone", "Competência", "Vencimento", "Valor", "Atraso"], rows);
+    savePdf(doc, `inadimplencia-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF gerado");
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <div className="text-xs uppercase tracking-widest text-red-500 mb-1">Gestão</div>
-        <h1 className="font-heading text-4xl leading-none">FINANCEIRO</h1>
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-widest text-red-500 mb-1">Gestão</div>
+          <h1 className="font-heading text-4xl leading-none">FINANCEIRO</h1>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={exportInvoicesPdf} data-testid="export-invoices-pdf" variant="outline" className="rounded-none border-zinc-700 hover:border-red-600 hover:text-red-500">
+            <Download className="w-4 h-4 mr-2" /> Mensalidades PDF
+          </Button>
+          <Button onClick={exportOverduePdf} data-testid="export-overdue-pdf" variant="outline" className="rounded-none border-zinc-700 hover:border-red-600 hover:text-red-500">
+            <Download className="w-4 h-4 mr-2" /> Inadimplência PDF
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

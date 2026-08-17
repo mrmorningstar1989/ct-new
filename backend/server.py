@@ -24,6 +24,7 @@ from routers import (
     graduations,
     dashboard,
     announcements,
+    notifications,
 )
 
 logging.basicConfig(
@@ -55,6 +56,7 @@ app.include_router(attendance.router)
 app.include_router(graduations.router)
 app.include_router(dashboard.router)
 app.include_router(announcements.router)
+app.include_router(notifications.router)
 
 
 @app.on_event("startup")

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Check, X, ClipboardCheck } from "lucide-react";
+import { Check, X, ClipboardCheck, Download } from "lucide-react";
+import { createPdf, addTable, savePdf, dtBR } from "@/lib/pdf";
 
 const STATUSES = [
   { key: "present", label: "P", full: "Presente", color: "bg-emerald-600 border-emerald-600" },
@@ -53,6 +54,28 @@ export default function AttendancePage() {
       await api.post("/attendance", payload);
       toast.success("Chamada registrada");
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const exportPdf = () => {
+    if (!classId || students.length === 0) { toast.error("Selecione uma turma com alunos"); return; }
+    const className = classes.find(c => c.id === classId)?.name || "Turma";
+    const doc = createPdf(`Chamada: ${className}`, `Data: ${dtBR(dateStr)} · ${students.length} alunos`);
+    const rows = students.map(s => {
+      const st = records[s.id];
+      const label = STATUSES.find(x => x.key === st)?.full || "—";
+      return [s.matricula || "-", s.full_name, label];
+    });
+    addTable(doc, ["Matrícula", "Aluno", "Status"], rows);
+    const counts = {};
+    Object.values(records).forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+    let summary = "Resumo: ";
+    STATUSES.forEach(s => { if (counts[s.key]) summary += `${s.full}: ${counts[s.key]}  `; });
+    const finalY = doc.lastAutoTable.finalY + 20;
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+    doc.text(summary, 40, finalY);
+    savePdf(doc, `chamada-${className.replace(/\s+/g, "_")}-${dateStr}.pdf`);
+    toast.success("PDF gerado");
   };
 
   return (
@@ -109,7 +132,10 @@ export default function AttendancePage() {
             </div>
           ))}
           {students.length > 0 && (
-            <div className="p-5 flex justify-end">
+            <div className="p-5 flex justify-between gap-3 flex-wrap">
+              <Button onClick={exportPdf} data-testid="export-attendance-pdf" variant="outline" className="rounded-none border-zinc-700 hover:border-red-600 hover:text-red-500">
+                <Download className="w-4 h-4 mr-2" /> Exportar PDF
+              </Button>
               <Button onClick={save} data-testid="save-attendance-button" className="bg-red-600 hover:bg-red-700 rounded-none">
                 <ClipboardCheck className="w-4 h-4 mr-2" /> Salvar Chamada
               </Button>

@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Award } from "lucide-react";
+import { Plus, Award, Download } from "lucide-react";
 import { toast } from "sonner";
 import BeltDisplay from "@/components/BeltDisplay";
+import { createPdf, addTable, savePdf, dtBR } from "@/lib/pdf";
 
 export default function Graduations() {
   const [students, setStudents] = useState([]);
@@ -55,6 +56,23 @@ export default function Graduations() {
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
+  const exportPdf = () => {
+    if (!selectedStudent || history.length === 0) { toast.error("Selecione um aluno com histórico"); return; }
+    const student = students.find(s => s.id === selectedStudent);
+    const doc = createPdf(`Histórico de Graduação`, `${student?.full_name} · Matrícula ${student?.matricula}`);
+    const rows = history.map(g => [
+      dtBR(g.graduation_date),
+      modalities.find(m => m.id === g.modality_id)?.name || "-",
+      g.belt_name,
+      `${g.stripes || 0}º grau`,
+      teachers.find(t => t.id === g.teacher_id)?.full_name || "-",
+      g.notes || "-",
+    ]);
+    addTable(doc, ["Data", "Modalidade", "Faixa", "Grau", "Professor", "Observação"], rows);
+    savePdf(doc, `graduacoes-${student?.matricula || "aluno"}.pdf`);
+    toast.success("PDF gerado");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between flex-wrap gap-4">
@@ -66,6 +84,14 @@ export default function Graduations() {
           <Plus className="w-4 h-4 mr-2" /> Registrar Graduação
         </Button>
       </div>
+
+      {selectedStudent && history.length > 0 && (
+        <div className="flex justify-end">
+          <Button onClick={exportPdf} data-testid="export-graduations-pdf" variant="outline" className="rounded-none border-zinc-700 hover:border-red-600 hover:text-red-500">
+            <Download className="w-4 h-4 mr-2" /> Exportar histórico PDF
+          </Button>
+        </div>
+      )}
 
       <div className="card-flat p-5">
         <Label className="text-xs uppercase tracking-wider text-zinc-400">Selecionar aluno</Label>
