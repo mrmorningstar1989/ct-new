@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 const empty = {
@@ -24,6 +24,9 @@ export default function Students() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
   const [loading, setLoading] = useState(false);
+  const [loginStatus, setLoginStatus] = useState(null); // {has_login, email}
+  const [pwDialog, setPwDialog] = useState(null); // student
+  const [pwForm, setPwForm] = useState({ password: "", email: "" });
 
   const load = async () => {
     const params = {};
@@ -34,8 +37,41 @@ export default function Students() {
 
   useEffect(() => { load(); }, [q]);
 
-  const openNew = () => { setEditing(null); setForm(empty); setOpen(true); };
-  const openEdit = (s) => { setEditing(s); setForm({ ...empty, ...s, create_login: false, password: "" }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm(empty); setLoginStatus(null); setOpen(true); };
+  const openEdit = async (s) => {
+    setEditing(s);
+    setForm({ ...empty, ...s, create_login: false, password: "" });
+    setLoginStatus(null);
+    setOpen(true);
+    try {
+      const { data } = await api.get(`/students/${s.id}/login-status`);
+      setLoginStatus(data);
+    } catch {}
+  };
+
+  const openResetPassword = (s) => {
+    setPwDialog(s);
+    setPwForm({ password: "", email: s.email || "" });
+  };
+
+  const submitResetPassword = async () => {
+    if (!pwDialog) return;
+    if ((pwForm.password || "").length < 4) { toast.error("A senha deve ter ao menos 4 caracteres"); return; }
+    try {
+      const { data } = await api.post(`/students/${pwDialog.id}/reset-password`, {
+        password: pwForm.password,
+        email: pwForm.email || null,
+      });
+      toast.success(data.action === "created" ? `Acesso criado para ${data.email}` : `Senha atualizada`);
+      setPwDialog(null);
+      if (editing && editing.id === pwDialog.id) {
+        // refresh login status if editing this student
+        const { data: ls } = await api.get(`/students/${pwDialog.id}/login-status`);
+        setLoginStatus(ls);
+      }
+      load();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
 
   const submit = async () => {
     setLoading(true);
@@ -113,6 +149,7 @@ export default function Students() {
                   </Badge>
                 </td>
                 <td className="px-5 py-3 text-right">
+                  <button onClick={() => openResetPassword(s)} data-testid={`reset-password-${s.id}`} className="text-zinc-400 hover:text-yellow-500 mr-3" title="Redefinir senha"><KeyRound className="w-4 h-4" /></button>
                   <button onClick={() => openEdit(s)} data-testid={`edit-student-${s.id}`} className="text-zinc-400 hover:text-white mr-3"><Edit className="w-4 h-4" /></button>
                   <button onClick={() => remove(s)} data-testid={`delete-student-${s.id}`} className="text-zinc-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </td>
@@ -174,11 +211,72 @@ export default function Students() {
                 )}
               </>
             )}
+            {editing && (
+              <div className="md:col-span-2 pt-3 mt-2 border-t border-zinc-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-zinc-400">Acesso do aluno</div>
+                    {loginStatus == null ? (
+                      <div className="text-xs text-zinc-500 mt-1">Verificando...</div>
+                    ) : loginStatus.has_login ? (
+                      <div className="text-sm text-emerald-500 mt-1">✓ Login ativo: <span className="font-mono">{loginStatus.email}</span></div>
+                    ) : (
+                      <div className="text-sm text-yellow-500 mt-1">Sem acesso ao portal ainda</div>
+                    )}
+                  </div>
+                  <Button type="button" size="sm" onClick={() => { setOpen(false); openResetPassword(editing); }} data-testid="open-reset-from-edit" className="rounded-none border border-yellow-600/40 bg-transparent hover:bg-yellow-600/10 text-yellow-500 h-8 text-xs">
+                    <KeyRound className="w-3 h-3 mr-1" /> {loginStatus?.has_login ? "Redefinir senha" : "Criar acesso"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} className="rounded-none border-zinc-700">Cancelar</Button>
             <Button onClick={submit} disabled={loading} data-testid="save-student-button" className="bg-red-600 hover:bg-red-700 rounded-none">
               {loading ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset password dialog */}
+      <Dialog open={!!pwDialog} onOpenChange={(o) => !o && setPwDialog(null)}>
+        <DialogContent className="bg-[#121212] border-zinc-800 text-white rounded-none max-w-md">
+          <DialogHeader><DialogTitle className="font-heading text-2xl">REDEFINIR SENHA</DialogTitle></DialogHeader>
+          {pwDialog && (
+            <div className="space-y-4">
+              <div className="p-3 border border-zinc-800 bg-black">
+                <div className="text-sm">{pwDialog.full_name}</div>
+                <div className="text-xs text-zinc-500 font-mono mt-1">Matrícula {pwDialog.matricula}</div>
+              </div>
+              <Field label="Email do login (obrigatório se não houver acesso ainda)">
+                <Input
+                  type="email"
+                  data-testid="reset-email-input"
+                  value={pwForm.email}
+                  onChange={(e) => setPwForm({ ...pwForm, email: e.target.value })}
+                  placeholder="aluno@exemplo.com"
+                />
+              </Field>
+              <Field label="Nova senha *">
+                <Input
+                  type="password"
+                  data-testid="reset-password-input"
+                  value={pwForm.password}
+                  onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })}
+                  placeholder="Mínimo 4 caracteres"
+                />
+              </Field>
+              <div className="text-[11px] text-zinc-500">
+                Se o aluno ainda não tem acesso ao portal, um login será criado com este email. Informe a nova senha ao aluno.
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwDialog(null)} className="rounded-none border-zinc-700">Cancelar</Button>
+            <Button onClick={submitResetPassword} data-testid="confirm-reset-password" className="bg-yellow-600 hover:bg-yellow-700 rounded-none text-black">
+              <KeyRound className="w-4 h-4 mr-2" /> Salvar Senha
             </Button>
           </DialogFooter>
         </DialogContent>

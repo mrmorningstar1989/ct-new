@@ -81,6 +81,12 @@ class StudentUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+class StudentPasswordReset(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    password: str
+    email: Optional[str] = None  # required if student has no login yet
+
+
 # ---------------- Teacher ----------------
 class TeacherCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
