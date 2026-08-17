@@ -175,6 +175,7 @@ class EnrollmentCreate(BaseModel):
     modality_id: str
     class_id: Optional[str] = None
     plan_id: Optional[str] = None
+    custom_discount: float = 0
     start_date: Optional[str] = None
     status: str = "active"
     notes: Optional[str] = None
@@ -185,8 +186,18 @@ class EnrollmentUpdate(BaseModel):
     modality_id: Optional[str] = None
     class_id: Optional[str] = None
     plan_id: Optional[str] = None
+    custom_discount: Optional[float] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+
+
+class BulkEnrollRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    student_ids: List[str]
+    modality_id: str
+    class_id: str
+    plan_id: Optional[str] = None
+    custom_discount: float = 0
 
 
 # ---------------- Plan ----------------
@@ -194,6 +205,7 @@ class PlanCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
     name: str
     value: float
+    early_value: Optional[float] = None
     periodicity: str = "monthly"  # monthly, quarterly, yearly, single
     classes_per_week: int = 0
     description: Optional[str] = None
@@ -204,6 +216,7 @@ class PlanUpdate(BaseModel):
     model_config = ConfigDict(extra="ignore")
     name: Optional[str] = None
     value: Optional[float] = None
+    early_value: Optional[float] = None
     periodicity: Optional[str] = None
     classes_per_week: Optional[int] = None
     description: Optional[str] = None

@@ -28,6 +28,21 @@ def _compute_status(inv: dict) -> str:
     return "pending"
 
 
+def _suggested_amount(inv: dict, paid_at_str: str) -> float:
+    """Compute amount to charge: early_value if paid by due_date, else regular value."""
+    try:
+        paid_at = date.fromisoformat(paid_at_str)
+        due = date.fromisoformat(inv["due_date"])
+    except Exception:
+        return float(inv.get("final_value") or inv.get("value") or 0)
+
+    early = inv.get("early_value")
+    regular = float(inv.get("final_value") or inv.get("value") or 0)
+    if early is not None and paid_at <= due:
+        return float(early)
+    return regular
+
+
 @router.get("")
 async def list_invoices(
     student_id: Optional[str] = None,
@@ -67,22 +82,26 @@ async def create_invoice(payload: InvoiceCreate, user: dict = Depends(require_ad
 
 @router.post("/{invoice_id}/pay")
 async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict = Depends(require_admin)):
+    """Register manual payment. If amount_paid omitted, backend computes it based on paid_at date
+    (early_value if within due_date, otherwise regular value)."""
     inv = await db.invoices.find_one({"id": invoice_id})
     if not inv:
         raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
     now = datetime.now(timezone.utc).isoformat()
     paid_at = payload.paid_at or date.today().isoformat()
-    amount_paid = payload.amount_paid or inv.get("final_value", inv.get("value", 0))
+    amount_paid = payload.amount_paid
+    if amount_paid is None:
+        amount_paid = _suggested_amount(inv, paid_at)
 
     await db.invoices.update_one({"id": invoice_id}, {"$set": {
         "status": "paid",
         "paid_at": paid_at,
         "payment_method": payload.payment_method,
         "amount_paid": amount_paid,
+        "notes": payload.notes,
         "updated_at": now,
     }})
 
-    # Record cash transaction
     await db.cash_transactions.insert_one({
         "id": str(uuid.uuid4()),
         "academy_id": DEFAULT_ACADEMY_ID,
@@ -98,6 +117,17 @@ async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict
     return _clean(await db.invoices.find_one({"id": invoice_id}))
 
 
+@router.post("/{invoice_id}/reopen")
+async def reopen_payment(invoice_id: str, user: dict = Depends(require_admin)):
+    """Undo a payment (mark as pending again)."""
+    inv = await db.invoices.find_one({"id": invoice_id})
+    if not inv:
+        raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
+    await db.invoices.update_one({"id": invoice_id}, {"$set": {"status": "pending"}, "$unset": {"paid_at": "", "payment_method": "", "amount_paid": ""}})
+    await db.cash_transactions.delete_many({"reference_id": invoice_id})
+    return _clean(await db.invoices.find_one({"id": invoice_id}))
+
+
 @router.delete("/{invoice_id}")
 async def delete_invoice(invoice_id: str, user: dict = Depends(require_admin)):
     res = await db.invoices.delete_one({"id": invoice_id})
@@ -106,7 +136,6 @@ async def delete_invoice(invoice_id: str, user: dict = Depends(require_admin)):
 
 @router.get("/overdue/list")
 async def overdue_list(user: dict = Depends(require_admin)):
-    """Inadimplência."""
     today = date.today().isoformat()
     docs = await db.invoices.find({
         "academy_id": DEFAULT_ACADEMY_ID,
