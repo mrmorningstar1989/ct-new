@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 4%;
+        --foreground: 0 0% 100%;
+        --card: 0 0% 7%;
+        --card-foreground: 0 0% 100%;
+        --popover: 0 0% 7%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 356 92% 47%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 0 0% 10%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 0 0% 15%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 0 0% 12%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 5% 15%;
+        --input: 240 5% 15%;
+        --ring: 356 92% 47%;
+        --radius: 0.125rem;
+        --chart-1: 356 92% 47%;
+        --chart-2: 0 0% 80%;
+        --chart-3: 43 96% 56%;
+        --chart-4: 220 70% 60%;
+        --chart-5: 160 60% 45%;
+    }
+}
+
+* {
+    border-color: hsl(var(--border));
+}
+
+html, body, #root {
+    background: #0A0A0A;
+}
+
+body {
+    margin: 0;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, .heading {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+}
+
+.font-mono, code {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.font-heading {
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0A0A0A; }
+::-webkit-scrollbar-thumb { background: #27272A; }
+::-webkit-scrollbar-thumb:hover { background: #52525B; }
+
+::selection { background: #E50914; color: #fff; }
+
+/* Grain overlay for depth */
+.grain::before {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Belt visual - BJJ style */
+.belt-bar {
+    position: relative;
+    height: 44px;
+    width: 100%;
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    display: flex;
+}
+.belt-bar .belt-body { flex: 1; }
+.belt-bar .belt-tip {
+    width: 25%;
+    background: #000;
+    position: relative;
+    border-left: 1px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: flex-start;
+    padding-left: 8px;
+    gap: 4px;
+}
+.belt-bar .stripe {
+    width: 6px; height: 60%;
+    background: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.belt-bar .stripe-red { background: #E50914; border-color: #E50914; }
+
+.card-flat {
+    background: #121212;
+    border: 1px solid #27272A;
+}
+.card-flat:hover { border-color: #3F3F46; }
+
+.transition-border { transition: border-color 200ms ease, background-color 200ms ease; }
+
+button, [role="button"] { transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease; }
+
+.btn-primary {
+    background: #E50914; color: #fff;
+    border: 1px solid #E50914;
+}
+.btn-primary:hover { background: #B80710; border-color: #B80710; }
+.btn-primary:active { transform: scale(0.98); }

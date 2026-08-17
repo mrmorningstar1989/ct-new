@@ -1,0 +1,108 @@
+{
+  "theme": "dark",
+  "archetype": "The Performance Pro (Elite Athleticism)",
+  "colors": {
+    "background": "#0A0A0A",
+    "surface": "#121212",
+    "surface_elevated": "#1A1A1A",
+    "primary": "#E50914",
+    "primary_hover": "#B80710",
+    "text_main": "#FFFFFF",
+    "text_muted": "#A1A1AA",
+    "border": "#27272A",
+    "belt_colors": {
+      "white": "#FFFFFF",
+      "blue": "#2563EB",
+      "purple": "#9333EA",
+      "brown": "#92400E",
+      "black": "#000000",
+      "red": "#DC2626"
+    },
+    "semantic": {
+      "success": "#16A34A",
+      "warning": "#EAB308",
+      "danger": "#DC2626",
+      "info": "#2563EB"
+    }
+  },
+  "typography": {
+    "heading": {
+      "family": "Barlow Condensed, sans-serif",
+      "weights": ["700", "900"],
+      "usage": "H1, H2, H3, KPIs, Numbers. Gives a heavy-weight athletic feel."
+    },
+    "body": {
+      "family": "Manrope, sans-serif",
+      "weights": ["400", "500", "600"],
+      "usage": "Paragraphs, table data, labels, inputs."
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "QR code IDs, financial numbers, time tracking."
+    }
+  },
+  "layouts": {
+    "admin_dashboard": {
+      "type": "sidebar_layout",
+      "sidebar": "Left fixed sidebar, border-r border-zinc-800. Solid dark background.",
+      "grid": "Bento 'Tetris' grid. grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-6.",
+      "cards": "Sharp edges (rounded-none or rounded-sm). Flat solid surface with 1px border. NO soft shadows. 'Tactical Minimalism'."
+    },
+    "student_mobile": {
+      "type": "mobile_first",
+      "navigation": "Fixed bottom tab navigation.",
+      "spacing": "Generous padding (p-6, p-8) to avoid accidental taps.",
+      "cards": "Full width cards with 1px top/bottom borders."
+    }
+  },
+  "components": {
+    "buttons": "Sharp edges, flat background. Primary buttons in solid Red (#E50914) with pure white text. Hover state: slightly darker red, translate-y-[-1px].",
+    "belt_visual_system": "CRITICAL: The belt display must be striking. Represented as a horizontal block. E.g., A white block, with a black patch on the right end, and a red stripe inside the black patch (BJJ style). Use CSS gradients or flex blocks. Add a dynamic progress bar underneath showing 'Time on Belt'.",
+    "digital_id_card": "A credit-card sized UI component in the mobile view. Deep Obsidian background, subtle noise texture, red accent borders. Center the QR Code on a pure white background square for scanability. Include Student Photo, Name, Modality, and current Belt.",
+    "charts": "Use Recharts or Shadcn Charts. Line charts for revenue. Bar charts for attendance. Colors: Red (#E50914) for primary metrics, White/Zinc for axes. Hide grid lines to keep it minimal.",
+    "tables": "Cardless tables for density. 1px border-b on rows. Hover: bg-zinc-900. Text must be perfectly aligned (numbers right, text left).",
+    "forms": "Inputs with bg-transparent, 1px solid border-zinc-800. Focus: border-red-600 ring-1 ring-red-600. Sharp corners."
+  },
+  "motion": {
+    "micro_interactions": "Hover states on cards: slight translate-y-1, border changes to zinc-600. Buttons scale down 0.98 on active (click).",
+    "page_transitions": "Fade and slight slide-up on route change."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Stroke width 2. Sharp, clean. Use red accents for active states."
+  },
+  "media": {
+    "images": {
+      "hero_background": "https://images.unsplash.com/photo-1708723636238-e4c384d5d428?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwyfHxtYXJ0aWFsJTIwYXJ0cyUyMGd5bXxlbnwwfHx8fDE3ODcwMDM1ODZ8MA&ixlib=rb-4.1.0&q=85",
+      "jiu_jitsu_training_1": "https://images.pexels.com/photos/15545735/pexels-photo-15545735.jpeg",
+      "jiu_jitsu_training_2": "https://images.pexels.com/photos/8612009/pexels-photo-8612009.jpeg",
+      "muay_thai_kick": "https://images.unsplash.com/photo-1525680996651-0222228be6f0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwxfHxtdWF5JTIwdGhhaSUyMGtpY2t8ZW58MHx8fHwxNzg3MDAzNTg2fDA&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Install specific fonts via Google Fonts: Barlow Condensed (700,900) and Manrope (400,500,600).",
+    "Implement a dark theme by default, enforcing Deep Obsidian (#0A0A0A) as the root background.",
+    "Do NOT use generic rounded cards with soft drop shadows. Use 'Tactical Minimalism' - flat surfaces with 1px solid zinc-800 borders.",
+    "The Digital ID (Carteirinha Digital) must look like a premium physical asset. Use the brand red, crisp typography, and an actual visible QR Code component (e.g. react-qr-code or lucide QR icon if placeholder).",
+    "Build the Belt system visually using HTML/CSS. Example for a Blue Belt: a div with bg-blue-600, containing a right-aligned black block (bg-black), which contains a small red stripe (bg-red-600).",
+    "Ensure the layout is highly responsive. The admin dashboard is desktop-optimized (dense, sidebar), while the student view is mobile-first (bottom nav, big tap targets).",
+    "Include 'data-testid' attributes on all interactive elements (e.g., login-button, generate-whatsapp-billing, mark-attendance-present)."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) only where appropriate, but for this athletic theme, prefer solid surfaces.",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style. Here, use sharp (rounded-sm/none) buttons.",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use sonner for toasts, located in /app/src/components/ui/sonner.tsx."
+  ]
+}
