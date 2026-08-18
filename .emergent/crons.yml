@@ -1,0 +1,10 @@
+crons:
+  - name: monthly-invoices
+    description: "Gera mensalidades no dia 1 de cada mês para todos os alunos ativos com plano mensal"
+    # 09:00 America/Sao_Paulo — Brasil roda ~09h da manhã
+    cron: "0 9 1 * *"
+    timezone: "America/Sao_Paulo"
+    endpoint: "{{BASE_URL}}/api/invoices/cron/generate-monthly"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true

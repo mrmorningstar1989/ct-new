@@ -22,6 +22,7 @@ const NAV = [
   { to: "/admin/financeiro", label: "Financeiro", icon: Receipt },
   { to: "/admin/notificacoes", label: "WhatsApp", icon: MessageCircle },
   { to: "/admin/avisos", label: "Avisos", icon: Bell },
+  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export default function AdminLayout() {

@@ -10,6 +10,7 @@ import { Printer, Save, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { getAcademy } from "@/lib/academy";
 
 const PARQ_QUESTIONS = [
   { key: "q1_heart_condition", label: "Algum médico já disse que você possui problema cardíaco e recomendou atividade física somente sob supervisão médica?" },
@@ -71,9 +72,10 @@ export default function HealthFormDialog({ student, open, onOpenChange, onSaved 
     finally { setSaving(false); }
   };
 
-  const printPdf = () => {
+  const printPdf = async () => {
     if (!student) return;
-    generateHealthPdf(student, parq, ana);
+    const academy = (await getAcademy()) || {};
+    generateHealthPdf(student, parq, ana, academy);
     toast.success("PDF gerado");
   };
 
@@ -201,7 +203,7 @@ function F({ label, children }) {
   );
 }
 
-function generateHealthPdf(student, parq, ana) {
+function generateHealthPdf(student, parq, ana, academy = {}) {
   const RED = [229, 9, 20];
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.width;
@@ -210,10 +212,25 @@ function generateHealthPdf(student, parq, ana) {
 
   // Header band
   doc.setFillColor(...RED); doc.rect(0, 0, W, 6, "F");
+
+  // Optional logo
+  let leftPad = M;
+  if (academy.logo_url && typeof academy.logo_url === "string" && academy.logo_url.startsWith("data:image")) {
+    try {
+      const fmt = academy.logo_url.includes("image/jpeg") ? "JPEG" : "PNG";
+      doc.addImage(academy.logo_url, fmt, M, 18, 46, 46);
+      leftPad = M + 60;
+    } catch { /* ignore */ }
+  }
+
+  const name = (academy.name || "CT WARRIOR").toUpperCase();
   doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(20, 20, 20);
-  doc.text("CT WARRIOR", M, 50);
+  doc.text(name, leftPad, 50);
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-  doc.text("Ficha de Saúde do Aluno · PAR-Q & Anamnese", M, 65);
+  const meta = [];
+  if (academy.cnpj) meta.push(`CNPJ ${academy.cnpj}`);
+  if (academy.phone) meta.push(academy.phone);
+  doc.text(meta.length ? meta.join(" · ") : "Ficha de Saúde do Aluno · PAR-Q & Anamnese", leftPad, 65);
   doc.text(new Date().toLocaleDateString("pt-BR"), W - M, 65, { align: "right" });
 
   doc.setDrawColor(220, 220, 220); doc.line(M, 90, W - M, 90);
@@ -326,10 +343,12 @@ function generateHealthPdf(student, parq, ana) {
 
   // Footer band on all pages
   const pages = doc.internal.getNumberOfPages();
+  const footer = [academy.name, academy.address, academy.city && `${academy.city}${academy.state ? "/" + academy.state : ""}`].filter(Boolean).join(" · ");
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     doc.setFillColor(...RED); doc.rect(0, H - 6, W, 6, "F");
     doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+    if (footer) doc.text(footer, M, H - 15);
     doc.text(`Ficha de saúde · ${student.full_name} · Página ${i}/${pages}`, W - M, H - 15, { align: "right" });
   }
 

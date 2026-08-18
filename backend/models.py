@@ -287,3 +287,23 @@ class AnnouncementCreate(BaseModel):
     title: str
     message: str
     audience: str = "all"  # all, students, teachers
+
+
+class AcademySettingsUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: Optional[str] = None
+    cnpj: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    zip_code: Optional[str] = None
+    logo_url: Optional[str] = None
+    instagram: Optional[str] = None
+    facebook: Optional[str] = None
+    website: Optional[str] = None
+    business_hours: Optional[str] = None
+    auto_renew_enabled: Optional[bool] = None
+    tagline: Optional[str] = None

@@ -89,8 +89,8 @@ export default function Financial() {
     overdue: overdue.reduce((a, b) => a + (b.final_value || b.value), 0),
   };
 
-  const exportInvoicesPdf = () => {
-    const doc = createPdf("Relatório de Mensalidades", `${invoices.length} mensalidades emitidas`);
+  const exportInvoicesPdf = async () => {
+    const doc = await createPdf("Relatório de Mensalidades", `${invoices.length} mensalidades emitidas`);
     const rows = invoices.map(i => [
       studentName(i.student_id), i.competency, dtBR(i.due_date),
       fmtBrl(i.final_value || i.value),
@@ -107,8 +107,8 @@ export default function Financial() {
     toast.success("PDF gerado");
   };
 
-  const exportOverduePdf = () => {
-    const doc = createPdf("Relatório de Inadimplência", `${overdue.length} títulos em atraso`);
+  const exportOverduePdf = async () => {
+    const doc = await createPdf("Relatório de Inadimplência", `${overdue.length} títulos em atraso`);
     const rows = overdue.map(i => [
       i.student?.full_name || "-", studentPhone(i.student_id), i.competency,
       dtBR(i.due_date), fmtBrl(i.final_value || i.value), `${i.days_late} dias`,

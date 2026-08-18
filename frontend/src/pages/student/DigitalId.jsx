@@ -2,18 +2,24 @@ import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { getAcademy } from "@/lib/academy";
 import BeltDisplay from "@/components/BeltDisplay";
 
 export default function StudentDigitalId() {
   const { user } = useAuth();
   const [student, setStudent] = useState(null);
   const [belts, setBelts] = useState([]);
+  const [academy, setAcademy] = useState({});
 
   useEffect(() => {
     if (!user?.linked_id) return;
     (async () => {
-      const s = await api.get(`/students/${user.linked_id}`);
+      const [s, ac] = await Promise.all([
+        api.get(`/students/${user.linked_id}`),
+        getAcademy(),
+      ]);
       setStudent(s.data);
+      setAcademy(ac || {});
       const enroll = await api.get("/enrollments");
       const results = [];
       for (const e of enroll.data) {
@@ -47,10 +53,14 @@ export default function StudentDigitalId() {
         <div className="p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
-              <div className="w-10 h-10 bg-red-600 flex items-center justify-center mb-3">
-                <span className="font-heading text-white text-2xl leading-none">W</span>
-              </div>
-              <div className="font-heading text-xl leading-none">CT WARRIOR</div>
+              {academy.logo_url ? (
+                <img src={academy.logo_url} alt="Logo" className="w-10 h-10 object-contain bg-white p-1 mb-3" />
+              ) : (
+                <div className="w-10 h-10 bg-red-600 flex items-center justify-center mb-3">
+                  <span className="font-heading text-white text-2xl leading-none">{(academy.name || "W")[0].toUpperCase()}</span>
+                </div>
+              )}
+              <div className="font-heading text-xl leading-none">{(academy.name || "CT WARRIOR").toUpperCase()}</div>
               <div className="text-[9px] uppercase tracking-widest text-zinc-500 mt-1">Digital ID</div>
             </div>
             <div className="text-right">

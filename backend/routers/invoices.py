@@ -1,12 +1,15 @@
 """Invoices (Mensalidades) and Payments."""
+import os
 import uuid
+import hmac
 from datetime import datetime, timezone, date
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from typing import Optional
 
 from auth import require_admin, get_current_user
 from db import db, DEFAULT_ACADEMY_ID
 from models import InvoiceCreate, PaymentRegister
+from utils import fifth_business_day
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -29,18 +32,67 @@ def _compute_status(inv: dict) -> str:
 
 
 def _suggested_amount(inv: dict, paid_at_str: str) -> float:
-    """Compute amount to charge: early_value if paid by due_date, else regular value."""
     try:
         paid_at = date.fromisoformat(paid_at_str)
         due = date.fromisoformat(inv["due_date"])
     except Exception:
         return float(inv.get("final_value") or inv.get("value") or 0)
-
     early = inv.get("early_value")
     regular = float(inv.get("final_value") or inv.get("value") or 0)
     if early is not None and paid_at <= due:
         return float(early)
     return regular
+
+
+async def _generate_invoices_for_month(year: int, month: int) -> int:
+    """Idempotently create invoices for competency YYYY-MM for all active monthly enrollments."""
+    competency = f"{year:04d}-{month:02d}"
+    due_date = fifth_business_day(year, month).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
+
+    enrollments = await db.enrollments.find({
+        "academy_id": DEFAULT_ACADEMY_ID,
+        "status": "active",
+        "plan_id": {"$ne": None},
+    }).to_list(5000)
+
+    created = 0
+    for e in enrollments:
+        exists = await db.invoices.find_one({"enrollment_id": e["id"], "competency": competency})
+        if exists:
+            continue
+        plan = await db.plans.find_one({"id": e["plan_id"]})
+        if not plan or plan.get("periodicity") != "monthly":
+            continue
+        discount = float(e.get("custom_discount") or 0)
+        value = float(plan.get("value", 0))
+        early = plan.get("early_value")
+        early_value = float(early) - discount if early is not None else None
+        await db.invoices.insert_one({
+            "id": str(uuid.uuid4()),
+            "academy_id": DEFAULT_ACADEMY_ID,
+            "student_id": e["student_id"],
+            "enrollment_id": e["id"],
+            "plan_id": plan["id"],
+            "competency": competency,
+            "due_date": due_date,
+            "value": value,
+            "early_value": early_value,
+            "discount": discount,
+            "final_value": value - discount,
+            "status": "pending",
+            "created_at": now,
+        })
+        created += 1
+    return created
+
+
+async def _cron_job():
+    settings = await db.academies.find_one({"id": DEFAULT_ACADEMY_ID}) or {}
+    if settings.get("auto_renew_enabled") is False:
+        return
+    today = date.today()
+    await _generate_invoices_for_month(today.year, today.month)
 
 
 @router.get("")
@@ -54,7 +106,6 @@ async def list_invoices(
         query["student_id"] = user.get("linked_id")
     elif student_id:
         query["student_id"] = student_id
-
     docs = await db.invoices.find(query).sort("due_date", -1).to_list(500)
     result = []
     for d in docs:
@@ -80,10 +131,37 @@ async def create_invoice(payload: InvoiceCreate, user: dict = Depends(require_ad
     return _clean(doc)
 
 
+@router.post("/generate-month")
+async def generate_month(competency: Optional[str] = None, user: dict = Depends(require_admin)):
+    """Manual trigger to generate all monthly invoices for a competency (default: current month)."""
+    if competency:
+        try:
+            y, m = competency.split("-")
+            year, month = int(y), int(m)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Formato inválido. Use YYYY-MM")
+    else:
+        today = date.today()
+        year, month = today.year, today.month
+    created = await _generate_invoices_for_month(year, month)
+    return {"created": created, "competency": f"{year:04d}-{month:02d}"}
+
+
+@router.post("/cron/generate-monthly")
+async def cron_generate_monthly(request: Request, background: BackgroundTasks):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    secret = os.environ.get("WEBHOOK_CRON_SECRET", "")
+    auth = request.headers.get("Authorization", "")
+    if not secret or not auth.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    if not hmac.compare_digest(auth[7:], secret):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    background.add_task(_cron_job)
+    return {"accepted": True}
+
+
 @router.post("/{invoice_id}/pay")
 async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict = Depends(require_admin)):
-    """Register manual payment. If amount_paid omitted, backend computes it based on paid_at date
-    (early_value if within due_date, otherwise regular value)."""
     inv = await db.invoices.find_one({"id": invoice_id})
     if not inv:
         raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
@@ -119,7 +197,6 @@ async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict
 
 @router.post("/{invoice_id}/reopen")
 async def reopen_payment(invoice_id: str, user: dict = Depends(require_admin)):
-    """Undo a payment (mark as pending again)."""
     inv = await db.invoices.find_one({"id": invoice_id})
     if not inv:
         raise HTTPException(status_code=404, detail="Mensalidade não encontrada")

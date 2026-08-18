@@ -22,6 +22,7 @@ import Financial from "@/pages/admin/Financial";
 import Announcements from "@/pages/admin/Announcements";
 import Notifications from "@/pages/admin/Notifications";
 import CalendarPage from "@/pages/admin/Calendar";
+import Settings from "@/pages/admin/Settings";
 
 import TeacherDashboard from "@/pages/teacher/Dashboard";
 import TeacherClasses from "@/pages/teacher/Classes";
@@ -63,6 +64,7 @@ function App() {
               <Route path="avisos" element={<Announcements />} />
               <Route path="notificacoes" element={<Notifications />} />
               <Route path="calendario" element={<CalendarPage />} />
+              <Route path="configuracoes" element={<Settings />} />
             </Route>
 
             <Route

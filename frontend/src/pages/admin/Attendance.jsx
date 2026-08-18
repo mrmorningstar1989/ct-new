@@ -56,10 +56,10 @@ export default function AttendancePage() {
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!classId || students.length === 0) { toast.error("Selecione uma turma com alunos"); return; }
     const className = classes.find(c => c.id === classId)?.name || "Turma";
-    const doc = createPdf(`Chamada: ${className}`, `Data: ${dtBR(dateStr)} · ${students.length} alunos`);
+    const doc = await createPdf(`Chamada: ${className}`, `Data: ${dtBR(dateStr)} · ${students.length} alunos`);
     const rows = students.map(s => {
       const st = records[s.id];
       const label = STATUSES.find(x => x.key === st)?.full || "—";
