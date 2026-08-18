@@ -54,6 +54,8 @@ class StudentCreate(BaseModel):
     guardian_name: Optional[str] = None
     guardian_phone: Optional[str] = None
     notes: Optional[str] = None
+    parq: Optional[dict] = None
+    anamnesis: Optional[dict] = None
     create_login: bool = True
     password: Optional[str] = None
 
@@ -79,6 +81,8 @@ class StudentUpdate(BaseModel):
     guardian_name: Optional[str] = None
     guardian_phone: Optional[str] = None
     notes: Optional[str] = None
+    parq: Optional[dict] = None
+    anamnesis: Optional[dict] = None
 
 
 class StudentPasswordReset(BaseModel):

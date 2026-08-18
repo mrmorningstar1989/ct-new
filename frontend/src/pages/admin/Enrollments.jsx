@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import HealthFormDialog from "@/components/HealthFormDialog";
 
 const brl = (v) => (v == null ? "R$ 0,00" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const emptyRow = { modality_id: "", class_id: "", plan_id: "", custom_discount: 0 };
@@ -22,6 +23,7 @@ export default function Enrollments() {
   const [studentId, setStudentId] = useState("");
   const [rows, setRows] = useState([{ ...emptyRow }]);
   const [saving, setSaving] = useState(false);
+  const [healthOpen, setHealthOpen] = useState(false);
 
   const load = async () => {
     const [e, s, m, c, p] = await Promise.all([
@@ -126,6 +128,16 @@ export default function Enrollments() {
                   </SelectContent>
                 </Select>
               </div>
+              {studentId && (
+                <button
+                  type="button"
+                  onClick={() => setHealthOpen(true)}
+                  data-testid="open-health-from-enrollment"
+                  className="mt-3 inline-flex items-center gap-2 px-3 py-2 border border-red-600/40 hover:border-red-600 hover:bg-red-600/10 text-red-500 text-xs uppercase tracking-widest transition-colors"
+                >
+                  <HeartPulse className="w-3.5 h-3.5" /> Preencher ficha de saúde (PAR-Q & Anamnese)
+                </button>
+              )}
             </div>
 
             <div>
@@ -197,6 +209,12 @@ export default function Enrollments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <HealthFormDialog
+        student={students.find(s => s.id === studentId)}
+        open={healthOpen}
+        onOpenChange={setHealthOpen}
+      />
     </div>
   );
 }

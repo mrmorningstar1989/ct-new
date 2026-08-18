@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Trash2, KeyRound } from "lucide-react";
+import { Plus, Search, Edit, Trash2, KeyRound, HeartPulse } from "lucide-react";
 import { toast } from "sonner";
+import HealthFormDialog from "@/components/HealthFormDialog";
 
 const empty = {
   full_name: "", email: "", phone: "", whatsapp: "", cpf: "", rg: "",
@@ -27,6 +28,7 @@ export default function Students() {
   const [loginStatus, setLoginStatus] = useState(null); // {has_login, email}
   const [pwDialog, setPwDialog] = useState(null); // student
   const [pwForm, setPwForm] = useState({ password: "", email: "" });
+  const [healthStudent, setHealthStudent] = useState(null);
 
   const load = async () => {
     const params = {};
@@ -149,6 +151,7 @@ export default function Students() {
                   </Badge>
                 </td>
                 <td className="px-5 py-3 text-right">
+                  <button onClick={() => setHealthStudent(s)} data-testid={`health-form-${s.id}`} className="text-zinc-400 hover:text-red-500 mr-3" title="Ficha de Saúde (PAR-Q & Anamnese)"><HeartPulse className="w-4 h-4" /></button>
                   <button onClick={() => openResetPassword(s)} data-testid={`reset-password-${s.id}`} className="text-zinc-400 hover:text-yellow-500 mr-3" title="Redefinir senha"><KeyRound className="w-4 h-4" /></button>
                   <button onClick={() => openEdit(s)} data-testid={`edit-student-${s.id}`} className="text-zinc-400 hover:text-white mr-3"><Edit className="w-4 h-4" /></button>
                   <button onClick={() => remove(s)} data-testid={`delete-student-${s.id}`} className="text-zinc-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
@@ -281,6 +284,12 @@ export default function Students() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <HealthFormDialog
+        student={healthStudent}
+        open={!!healthStudent}
+        onOpenChange={(o) => !o && setHealthStudent(null)}
+      />
     </div>
   );
 }
