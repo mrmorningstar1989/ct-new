@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, GraduationCap, Dumbbell,
   CalendarDays, ClipboardCheck, Receipt, Wallet,
-  Bell, Settings, LogOut, Menu, X, Award, MessageCircle, Calendar,
+  Bell, Settings, LogOut, Menu, X, Award, MessageCircle, Calendar, Send,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const NAV = [
   { to: "/admin/planos", label: "Planos", icon: Wallet },
   { to: "/admin/financeiro", label: "Financeiro", icon: Receipt },
   { to: "/admin/notificacoes", label: "WhatsApp", icon: MessageCircle },
+  { to: "/admin/lembretes", label: "Lembretes", icon: Send },
   { to: "/admin/avisos", label: "Avisos", icon: Bell },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];
