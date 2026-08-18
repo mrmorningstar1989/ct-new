@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 
 from auth import require_admin, require_admin_or_teacher, hash_password, get_current_user
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 from models import StudentCreate, StudentUpdate, StudentPasswordReset
 
 router = APIRouter(prefix="/api/students", tags=["students"])
@@ -16,10 +16,10 @@ def _clean(doc: dict) -> dict:
     return doc
 
 
-async def _next_matricula() -> str:
+async def _next_matricula(academy_id: str) -> str:
     # Atomic counter to avoid race conditions and reuse after deletes
     doc = await db.counters.find_one_and_update(
-        {"_id": "student_matricula"},
+        {"_id": f"student_matricula:{academy_id}"},
         {"$inc": {"seq": 1}},
         upsert=True,
         return_document=True,
@@ -35,7 +35,7 @@ async def list_students(
     limit: int = Query(100, le=500),
     user: dict = Depends(require_admin_or_teacher),
 ):
-    query = {"academy_id": DEFAULT_ACADEMY_ID}
+    query = {"academy_id": user["academy_id"]}
     if status:
         query["status"] = status
     if q:
@@ -54,7 +54,8 @@ async def list_students(
 async def create_student(payload: StudentCreate, user: dict = Depends(require_admin)):
     student_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
-    matricula = await _next_matricula()
+    academy_id = user["academy_id"]
+    matricula = await _next_matricula(academy_id)
 
     doc = payload.model_dump()
     if doc.get("emergency_contact"):
@@ -65,7 +66,7 @@ async def create_student(payload: StudentCreate, user: dict = Depends(require_ad
     doc.update({
         "id": student_id,
         "matricula": matricula,
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": academy_id,
         "created_at": now,
         "updated_at": now,
     })
@@ -83,7 +84,7 @@ async def create_student(payload: StudentCreate, user: dict = Depends(require_ad
                 "password_hash": hash_password(password),
                 "name": payload.full_name,
                 "role": "student",
-                "academy_id": DEFAULT_ACADEMY_ID,
+                "academy_id": academy_id,
                 "linked_id": student_id,
                 "created_at": now,
             })
@@ -96,7 +97,7 @@ async def get_student(student_id: str, user: dict = Depends(get_current_user)):
     # Students can only see themselves
     if user["role"] == "student" and user.get("linked_id") != student_id:
         raise HTTPException(status_code=403, detail="Acesso negado")
-    doc = await db.students.find_one({"id": student_id})
+    doc = await db.students.find_one({"id": student_id, "academy_id": user["academy_id"]})
     if not doc:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return _clean(doc)
@@ -108,18 +109,20 @@ async def update_student(student_id: str, payload: StudentUpdate, user: dict = D
     if not data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    res = await db.students.update_one({"id": student_id}, {"$set": data})
+    scope = {"id": student_id, "academy_id": user["academy_id"]}
+    res = await db.students.update_one(scope, {"$set": data})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
-    doc = await db.students.find_one({"id": student_id})
+    doc = await db.students.find_one(scope)
     return _clean(doc)
 
 
 @router.delete("/{student_id}")
 async def delete_student(student_id: str, user: dict = Depends(require_admin)):
-    res = await db.students.delete_one({"id": student_id})
+    scope = {"id": student_id, "academy_id": user["academy_id"]}
+    res = await db.students.delete_one(scope)
     # Also delete linked user
-    await db.users.delete_many({"linked_id": student_id, "role": "student"})
+    await db.users.delete_many({"linked_id": student_id, "role": "student", "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
 
 
@@ -128,11 +131,11 @@ async def reset_student_password(student_id: str, payload: StudentPasswordReset,
     """Admin resets or creates the login of a student."""
     if len(payload.password or "") < 4:
         raise HTTPException(status_code=400, detail="A senha deve ter ao menos 4 caracteres")
-    student = await db.students.find_one({"id": student_id})
+    student = await db.students.find_one({"id": student_id, "academy_id": user["academy_id"]})
     if not student:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
 
-    existing = await db.users.find_one({"linked_id": student_id, "role": "student"})
+    existing = await db.users.find_one({"linked_id": student_id, "role": "student", "academy_id": user["academy_id"]})
     now = datetime.now(timezone.utc).isoformat()
 
     if existing:
@@ -149,7 +152,7 @@ async def reset_student_password(student_id: str, payload: StudentPasswordReset,
 
     # Update student email if it was blank
     if not student.get("email"):
-        await db.students.update_one({"id": student_id}, {"$set": {"email": email}})
+        await db.students.update_one({"id": student_id, "academy_id": user["academy_id"]}, {"$set": {"email": email}})
 
     # Ensure email not taken
     if await db.users.find_one({"email": email}):
@@ -161,7 +164,7 @@ async def reset_student_password(student_id: str, payload: StudentPasswordReset,
         "password_hash": hash_password(payload.password),
         "name": student.get("full_name"),
         "role": "student",
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": user["academy_id"],
         "linked_id": student_id,
         "created_at": now,
     })
@@ -170,7 +173,7 @@ async def reset_student_password(student_id: str, payload: StudentPasswordReset,
 
 @router.get("/{student_id}/login-status")
 async def student_login_status(student_id: str, user: dict = Depends(require_admin)):
-    linked = await db.users.find_one({"linked_id": student_id, "role": "student"})
+    linked = await db.users.find_one({"linked_id": student_id, "role": "student", "academy_id": user["academy_id"]})
     return {
         "has_login": bool(linked),
         "email": linked.get("email") if linked else None,

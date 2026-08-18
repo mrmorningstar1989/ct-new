@@ -7,7 +7,7 @@ from datetime import datetime, timezone, date, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 
 from auth import require_admin
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 
 router = APIRouter(prefix="/api/reminders", tags=["reminders"])
 
@@ -24,30 +24,30 @@ def _brl(v) -> str:
         return "R$ 0,00"
 
 
-async def _build_reminders() -> int:
+async def _build_reminders(academy_id: str) -> int:
     today = date.today()
     tomorrow = today + timedelta(days=1)
     now = datetime.now(timezone.utc).isoformat()
 
     # Cleanup old pending/sent reminders (older than 3 days)
     cutoff = (today - timedelta(days=3)).isoformat()
-    await db.whatsapp_reminders.delete_many({"due_date": {"$lt": cutoff}})
+    await db.whatsapp_reminders.delete_many({"academy_id": academy_id, "due_date": {"$lt": cutoff}})
 
-    academy = await db.academies.find_one({"id": DEFAULT_ACADEMY_ID}) or {}
+    academy = await db.academies.find_one({"id": academy_id}) or {}
     academy_name = academy.get("name") or "CT Warrior"
 
     created = 0
     for target_date, kind in [(today, "due_today"), (tomorrow, "due_tomorrow")]:
         invs = await db.invoices.find({
-            "academy_id": DEFAULT_ACADEMY_ID,
+            "academy_id": academy_id,
             "status": {"$ne": "paid"},
             "due_date": target_date.isoformat(),
         }).to_list(1000)
         for inv in invs:
-            existing = await db.whatsapp_reminders.find_one({"invoice_id": inv["id"], "kind": kind})
+            existing = await db.whatsapp_reminders.find_one({"academy_id": academy_id, "invoice_id": inv["id"], "kind": kind})
             if existing and existing.get("status") == "sent":
                 continue
-            student = await db.students.find_one({"id": inv["student_id"]})
+            student = await db.students.find_one({"id": inv["student_id"], "academy_id": academy_id})
             if not student:
                 continue
             phone = (student.get("whatsapp") or student.get("phone") or "").strip()
@@ -96,7 +96,7 @@ async def _build_reminders() -> int:
             else:
                 await db.whatsapp_reminders.insert_one({
                     "id": str(uuid.uuid4()),
-                    "academy_id": DEFAULT_ACADEMY_ID,
+                    "academy_id": academy_id,
                     "kind": kind,
                     "status": "pending",
                     "created_at": now,
@@ -105,7 +105,7 @@ async def _build_reminders() -> int:
                 created += 1
     # Record last run
     await db.cron_runs.update_one(
-        {"job": "whatsapp_reminders"},
+        {"job": "whatsapp_reminders", "academy_id": academy_id},
         {"$set": {"last_run_at": now, "created_count": created}},
         upsert=True,
     )
@@ -113,41 +113,43 @@ async def _build_reminders() -> int:
 
 
 async def _cron_job():
-    await _build_reminders()
+    async for academy in db.academies.find({"status": {"$ne": "inactive"}}):
+        await _build_reminders(academy["id"])
 
 
 @router.get("")
 async def list_reminders(user: dict = Depends(require_admin)):
     """Return today+tomorrow reminders grouped by kind."""
-    docs = await db.whatsapp_reminders.find({"academy_id": DEFAULT_ACADEMY_ID}).sort("due_date", 1).to_list(500)
+    academy_id = user["academy_id"]
+    docs = await db.whatsapp_reminders.find({"academy_id": academy_id}).sort("due_date", 1).to_list(500)
     result = []
     for d in docs:
         d.pop("_id", None)
         result.append(d)
-    last = await db.cron_runs.find_one({"job": "whatsapp_reminders"}, {"_id": 0})
+    last = await db.cron_runs.find_one({"job": "whatsapp_reminders", "academy_id": academy_id}, {"_id": 0})
     return {"items": result, "last_run": last}
 
 
 @router.post("/generate-now")
 async def generate_now(user: dict = Depends(require_admin)):
-    created = await _build_reminders()
+    created = await _build_reminders(user["academy_id"])
     return {"created": created}
 
 
 @router.post("/{rid}/mark-sent")
 async def mark_sent(rid: str, user: dict = Depends(require_admin)):
     res = await db.whatsapp_reminders.update_one(
-        {"id": rid},
+        {"id": rid, "academy_id": user["academy_id"]},
         {"$set": {"status": "sent", "sent_at": datetime.now(timezone.utc).isoformat()}},
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Lembrete não encontrado")
-    return _clean(await db.whatsapp_reminders.find_one({"id": rid}))
+    return _clean(await db.whatsapp_reminders.find_one({"id": rid, "academy_id": user["academy_id"]}))
 
 
 @router.delete("/{rid}")
 async def dismiss(rid: str, user: dict = Depends(require_admin)):
-    res = await db.whatsapp_reminders.delete_one({"id": rid})
+    res = await db.whatsapp_reminders.delete_one({"id": rid, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
 
 

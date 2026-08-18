@@ -1,4 +1,5 @@
 """Authentication endpoints."""
+import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
@@ -20,13 +21,17 @@ LOCKOUT_MINUTES = 15
 
 
 def _set_auth_cookies(response: Response, access: str, refresh: str):
+    # Local HTTP development needs non-Secure cookies. Production keeps the
+    # browser's Secure requirement unless explicitly configured otherwise.
+    cookie_secure = os.environ.get("COOKIE_SECURE", "true").lower() == "true"
+    cookie_samesite = "none" if cookie_secure else "lax"
     response.set_cookie(
-        key="access_token", value=access, httponly=True, secure=True,
-        samesite="none", max_age=60 * 60 * 24, path="/",
+        key="access_token", value=access, httponly=True, secure=cookie_secure,
+        samesite=cookie_samesite, max_age=60 * 60 * 24, path="/",
     )
     response.set_cookie(
-        key="refresh_token", value=refresh, httponly=True, secure=True,
-        samesite="none", max_age=60 * 60 * 24 * 7, path="/",
+        key="refresh_token", value=refresh, httponly=True, secure=cookie_secure,
+        samesite=cookie_samesite, max_age=60 * 60 * 24 * 7, path="/",
     )
 
 
@@ -72,7 +77,7 @@ async def login(payload: LoginRequest, request: Request, response: Response):
 
     await db.login_attempts.delete_one({"identifier": identifier})
 
-    access = create_access_token(user["id"], user["email"], user["role"])
+    access = create_access_token(user["id"], user["email"], user["role"], user.get("academy_id"))
     refresh = create_refresh_token(user["id"])
     _set_auth_cookies(response, access, refresh)
 
@@ -113,7 +118,7 @@ async def register(payload: RegisterRequest, response: Response):
     }
     await db.users.insert_one(user_doc)
 
-    access = create_access_token(user_id, email, role)
+    access = create_access_token(user_id, email, role, DEFAULT_ACADEMY_ID)
     refresh = create_refresh_token(user_id)
     _set_auth_cookies(response, access, refresh)
     return _user_out(user_doc)

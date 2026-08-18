@@ -307,3 +307,16 @@ class AcademySettingsUpdate(BaseModel):
     business_hours: Optional[str] = None
     auto_renew_enabled: Optional[bool] = None
     tagline: Optional[str] = None
+
+
+# ---------------- Platform administration ----------------
+class AcademyCreate(BaseModel):
+    name: str
+    admin_name: str
+    admin_email: EmailStr
+    admin_password: str
+    cnpj: Optional[str] = None
+
+
+class AcademyStatusUpdate(BaseModel):
+    status: str  # active or inactive

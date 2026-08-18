@@ -9,6 +9,7 @@ import TeacherLayout from "@/components/layout/TeacherLayout";
 import StudentLayout from "@/components/layout/StudentLayout";
 
 import Login from "@/pages/Login";
+import Platform from "@/pages/Platform";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import Students from "@/pages/admin/Students";
 import Teachers from "@/pages/admin/Teachers";
@@ -43,6 +44,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/plataforma" element={<ProtectedRoute roles={["superadmin"]}><Platform /></ProtectedRoute>} />
 
             <Route
               path="/admin"

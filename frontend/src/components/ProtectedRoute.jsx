@@ -17,6 +17,7 @@ export default function ProtectedRoute({ children, roles }) {
 
   if (roles && !roles.includes(user.role)) {
     // Route based on role
+    if (user.role === "superadmin") return <Navigate to="/plataforma" replace />;
     if (user.role === "admin") return <Navigate to="/admin" replace />;
     if (user.role === "teacher") return <Navigate to="/professor" replace />;
     return <Navigate to="/aluno" replace />;

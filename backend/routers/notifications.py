@@ -3,7 +3,7 @@ from datetime import datetime, timezone, date, timedelta
 from fastapi import APIRouter, Depends
 
 from auth import require_admin
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -16,7 +16,7 @@ GRADUATION_MIN_DAYS = 180  # eligible if on belt more than 6 months
 @router.get("/summary")
 async def summary(user: dict = Depends(require_admin)):
     today = date.today()
-    q = {"academy_id": DEFAULT_ACADEMY_ID}
+    q = {"academy_id": user["academy_id"]}
 
     # 1. Overdue invoices with student info
     overdue_docs = await db.invoices.find({
@@ -27,7 +27,7 @@ async def summary(user: dict = Depends(require_admin)):
     overdue_list = []
     for i in overdue_docs:
         i.pop("_id", None)
-        student = await db.students.find_one({"id": i["student_id"]}, {"_id": 0})
+        student = await db.students.find_one({"id": i["student_id"], "academy_id": user["academy_id"]}, {"_id": 0})
         if not student:
             continue
         try:
@@ -56,7 +56,7 @@ async def summary(user: dict = Depends(require_admin)):
     upcoming_list = []
     for i in upcoming_docs:
         i.pop("_id", None)
-        student = await db.students.find_one({"id": i["student_id"]}, {"_id": 0})
+        student = await db.students.find_one({"id": i["student_id"], "academy_id": user["academy_id"]}, {"_id": 0})
         if not student:
             continue
         try:
@@ -125,8 +125,8 @@ async def summary(user: dict = Depends(require_admin)):
             days = 0
         if days < GRADUATION_MIN_DAYS:
             continue
-        student = await db.students.find_one({"id": sid}, {"_id": 0})
-        modality = await db.modalities.find_one({"id": mid}, {"_id": 0})
+        student = await db.students.find_one({"id": sid, "academy_id": user["academy_id"]}, {"_id": 0})
+        modality = await db.modalities.find_one({"id": mid, "academy_id": user["academy_id"]}, {"_id": 0})
         if not student or not modality:
             continue
         upcoming_grads.append({

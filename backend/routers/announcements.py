@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 
 from auth import require_admin, get_current_user
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 from models import AnnouncementCreate
 
 router = APIRouter(prefix="/api/announcements", tags=["announcements"])
@@ -17,7 +17,7 @@ def _clean(doc: dict) -> dict:
 
 @router.get("")
 async def list_announcements(user: dict = Depends(get_current_user)):
-    docs = await db.announcements.find({"academy_id": DEFAULT_ACADEMY_ID}).sort("created_at", -1).to_list(200)
+    docs = await db.announcements.find({"academy_id": user["academy_id"]}).sort("created_at", -1).to_list(200)
     result = []
     for d in docs:
         d.pop("_id", None)
@@ -34,7 +34,7 @@ async def create_announcement(payload: AnnouncementCreate, user: dict = Depends(
     doc = payload.model_dump()
     doc.update({
         "id": str(uuid.uuid4()),
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": user["academy_id"],
         "author_id": user["id"],
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
@@ -44,5 +44,5 @@ async def create_announcement(payload: AnnouncementCreate, user: dict = Depends(
 
 @router.delete("/{ann_id}")
 async def delete_announcement(ann_id: str, user: dict = Depends(require_admin)):
-    res = await db.announcements.delete_one({"id": ann_id})
+    res = await db.announcements.delete_one({"id": ann_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}

@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 
 from auth import require_admin_or_teacher, get_current_user
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 from models import AttendanceCreate
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
@@ -18,13 +18,17 @@ def _clean(doc: dict) -> dict:
 
 @router.post("")
 async def register_attendance(payload: AttendanceCreate, user: dict = Depends(require_admin_or_teacher)):
+    academy_id = user["academy_id"]
+    cls = await db.classes.find_one({"id": payload.class_id, "academy_id": academy_id}, {"_id": 1, "teacher_id": 1})
+    if not cls or (user["role"] == "teacher" and cls.get("teacher_id") != user.get("linked_id")):
+        raise HTTPException(status_code=404, detail="Turma não encontrada na academia")
     now = datetime.now(timezone.utc).isoformat()
     # Replace existing record for that class+date
-    await db.attendance.delete_many({"class_id": payload.class_id, "date": payload.date})
+    await db.attendance.delete_many({"academy_id": academy_id, "class_id": payload.class_id, "date": payload.date})
 
     doc = {
         "id": str(uuid.uuid4()),
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": academy_id,
         "class_id": payload.class_id,
         "date": payload.date,
         "records": [r.model_dump() for r in payload.records],
@@ -42,7 +46,7 @@ async def list_attendance(
     date_to: Optional[str] = None,
     user: dict = Depends(require_admin_or_teacher),
 ):
-    query = {"academy_id": DEFAULT_ACADEMY_ID}
+    query = {"academy_id": user["academy_id"]}
     if class_id:
         query["class_id"] = class_id
     if date_from or date_to:
@@ -62,7 +66,7 @@ async def student_attendance(student_id: str, user: dict = Depends(get_current_u
     if user["role"] == "student" and user.get("linked_id") != student_id:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    docs = await db.attendance.find({"academy_id": DEFAULT_ACADEMY_ID}).to_list(2000)
+    docs = await db.attendance.find({"academy_id": user["academy_id"]}).to_list(2000)
     records = []
     counts = {"present": 0, "absent": 0, "justified": 0, "trial": 0, "medical": 0}
     for att in docs:
@@ -86,7 +90,7 @@ async def student_attendance(student_id: str, user: dict = Depends(get_current_u
 
 @router.get("/class/{class_id}/date/{date_str}")
 async def get_class_attendance(class_id: str, date_str: str, user: dict = Depends(require_admin_or_teacher)):
-    doc = await db.attendance.find_one({"class_id": class_id, "date": date_str})
+    doc = await db.attendance.find_one({"academy_id": user["academy_id"], "class_id": class_id, "date": date_str})
     if not doc:
         return {"class_id": class_id, "date": date_str, "records": []}
     return _clean(doc)

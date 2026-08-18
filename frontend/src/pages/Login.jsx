@@ -16,6 +16,7 @@ export default function Login() {
   const [error, setError] = useState("");
 
   if (user) {
+    if (user.role === "superadmin") return <Navigate to="/plataforma" replace />;
     if (user.role === "admin") return <Navigate to="/admin" replace />;
     if (user.role === "teacher") return <Navigate to="/professor" replace />;
     return <Navigate to="/aluno" replace />;
@@ -33,7 +34,8 @@ export default function Login() {
       return;
     }
     toast.success("Bem-vindo!");
-    if (res.user.role === "admin") navigate("/admin");
+    if (res.user.role === "superadmin") navigate("/plataforma");
+    else if (res.user.role === "admin") navigate("/admin");
     else if (res.user.role === "teacher") navigate("/professor");
     else navigate("/aluno");
   };

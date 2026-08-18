@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 
 from auth import require_admin, get_current_user
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 from models import ModalityCreate, ModalityUpdate
 
 router = APIRouter(prefix="/api/modalities", tags=["modalities"])
@@ -17,7 +17,7 @@ def _clean(doc: dict) -> dict:
 
 @router.get("")
 async def list_modalities(user: dict = Depends(get_current_user)):
-    docs = await db.modalities.find({"academy_id": DEFAULT_ACADEMY_ID}).to_list(500)
+    docs = await db.modalities.find({"academy_id": user["academy_id"]}).to_list(500)
     return [_clean(d) for d in docs]
 
 
@@ -27,7 +27,7 @@ async def create_modality(payload: ModalityCreate, user: dict = Depends(require_
     doc = payload.model_dump()
     doc.update({
         "id": str(uuid.uuid4()),
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": user["academy_id"],
         "created_at": now,
     })
     await db.modalities.insert_one(doc)
@@ -36,7 +36,7 @@ async def create_modality(payload: ModalityCreate, user: dict = Depends(require_
 
 @router.get("/{modality_id}")
 async def get_modality(modality_id: str, user: dict = Depends(get_current_user)):
-    doc = await db.modalities.find_one({"id": modality_id})
+    doc = await db.modalities.find_one({"id": modality_id, "academy_id": user["academy_id"]})
     if not doc:
         raise HTTPException(status_code=404, detail="Modalidade não encontrada")
     return _clean(doc)
@@ -45,13 +45,14 @@ async def get_modality(modality_id: str, user: dict = Depends(get_current_user))
 @router.patch("/{modality_id}")
 async def update_modality(modality_id: str, payload: ModalityUpdate, user: dict = Depends(require_admin)):
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
-    res = await db.modalities.update_one({"id": modality_id}, {"$set": data})
+    scope = {"id": modality_id, "academy_id": user["academy_id"]}
+    res = await db.modalities.update_one(scope, {"$set": data})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Modalidade não encontrada")
-    return _clean(await db.modalities.find_one({"id": modality_id}))
+    return _clean(await db.modalities.find_one(scope))
 
 
 @router.delete("/{modality_id}")
 async def delete_modality(modality_id: str, user: dict = Depends(require_admin)):
-    res = await db.modalities.delete_one({"id": modality_id})
+    res = await db.modalities.delete_one({"id": modality_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}

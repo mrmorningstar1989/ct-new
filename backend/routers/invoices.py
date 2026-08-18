@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from typing import Optional
 
 from auth import require_admin, get_current_user
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 from models import InvoiceCreate, PaymentRegister
 from utils import fifth_business_day
 
@@ -44,24 +44,24 @@ def _suggested_amount(inv: dict, paid_at_str: str) -> float:
     return regular
 
 
-async def _generate_invoices_for_month(year: int, month: int) -> int:
+async def _generate_invoices_for_month(year: int, month: int, academy_id: str) -> int:
     """Idempotently create invoices for competency YYYY-MM for all active monthly enrollments."""
     competency = f"{year:04d}-{month:02d}"
     due_date = fifth_business_day(year, month).isoformat()
     now = datetime.now(timezone.utc).isoformat()
 
     enrollments = await db.enrollments.find({
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": academy_id,
         "status": "active",
         "plan_id": {"$ne": None},
     }).to_list(5000)
 
     created = 0
     for e in enrollments:
-        exists = await db.invoices.find_one({"enrollment_id": e["id"], "competency": competency})
+        exists = await db.invoices.find_one({"academy_id": academy_id, "enrollment_id": e["id"], "competency": competency})
         if exists:
             continue
-        plan = await db.plans.find_one({"id": e["plan_id"]})
+        plan = await db.plans.find_one({"id": e["plan_id"], "academy_id": academy_id})
         if not plan or plan.get("periodicity") != "monthly":
             continue
         discount = float(e.get("custom_discount") or 0)
@@ -70,7 +70,7 @@ async def _generate_invoices_for_month(year: int, month: int) -> int:
         early_value = float(early) - discount if early is not None else None
         await db.invoices.insert_one({
             "id": str(uuid.uuid4()),
-            "academy_id": DEFAULT_ACADEMY_ID,
+            "academy_id": academy_id,
             "student_id": e["student_id"],
             "enrollment_id": e["id"],
             "plan_id": plan["id"],
@@ -88,11 +88,11 @@ async def _generate_invoices_for_month(year: int, month: int) -> int:
 
 
 async def _cron_job():
-    settings = await db.academies.find_one({"id": DEFAULT_ACADEMY_ID}) or {}
-    if settings.get("auto_renew_enabled") is False:
-        return
     today = date.today()
-    await _generate_invoices_for_month(today.year, today.month)
+    academies = await db.academies.find({"status": {"$ne": "inactive"}}).to_list(5000)
+    for academy in academies:
+        if academy.get("auto_renew_enabled") is not False:
+            await _generate_invoices_for_month(today.year, today.month, academy["id"])
 
 
 @router.get("")
@@ -101,7 +101,7 @@ async def list_invoices(
     status: Optional[str] = None,
     user: dict = Depends(get_current_user),
 ):
-    query = {"academy_id": DEFAULT_ACADEMY_ID}
+    query = {"academy_id": user["academy_id"]}
     if user["role"] == "student":
         query["student_id"] = user.get("linked_id")
     elif student_id:
@@ -119,10 +119,13 @@ async def list_invoices(
 
 @router.post("")
 async def create_invoice(payload: InvoiceCreate, user: dict = Depends(require_admin)):
+    academy_id = user["academy_id"]
+    if not await db.students.find_one({"id": payload.student_id, "academy_id": academy_id}, {"_id": 1}):
+        raise HTTPException(status_code=404, detail="Aluno não encontrado na academia")
     doc = payload.model_dump()
     doc.update({
         "id": str(uuid.uuid4()),
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": academy_id,
         "final_value": doc["value"] - doc.get("discount", 0),
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -143,7 +146,7 @@ async def generate_month(competency: Optional[str] = None, user: dict = Depends(
     else:
         today = date.today()
         year, month = today.year, today.month
-    created = await _generate_invoices_for_month(year, month)
+    created = await _generate_invoices_for_month(year, month, user["academy_id"])
     return {"created": created, "competency": f"{year:04d}-{month:02d}"}
 
 
@@ -162,7 +165,8 @@ async def cron_generate_monthly(request: Request, background: BackgroundTasks):
 
 @router.post("/{invoice_id}/pay")
 async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict = Depends(require_admin)):
-    inv = await db.invoices.find_one({"id": invoice_id})
+    scope = {"id": invoice_id, "academy_id": user["academy_id"]}
+    inv = await db.invoices.find_one(scope)
     if not inv:
         raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
     now = datetime.now(timezone.utc).isoformat()
@@ -171,7 +175,7 @@ async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict
     if amount_paid is None:
         amount_paid = _suggested_amount(inv, paid_at)
 
-    await db.invoices.update_one({"id": invoice_id}, {"$set": {
+    await db.invoices.update_one(scope, {"$set": {
         "status": "paid",
         "paid_at": paid_at,
         "payment_method": payload.payment_method,
@@ -182,7 +186,7 @@ async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict
 
     await db.cash_transactions.insert_one({
         "id": str(uuid.uuid4()),
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": user["academy_id"],
         "type": "income",
         "category": "mensalidade",
         "value": amount_paid,
@@ -192,22 +196,23 @@ async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict
         "created_at": now,
     })
 
-    return _clean(await db.invoices.find_one({"id": invoice_id}))
+    return _clean(await db.invoices.find_one(scope))
 
 
 @router.post("/{invoice_id}/reopen")
 async def reopen_payment(invoice_id: str, user: dict = Depends(require_admin)):
-    inv = await db.invoices.find_one({"id": invoice_id})
+    scope = {"id": invoice_id, "academy_id": user["academy_id"]}
+    inv = await db.invoices.find_one(scope)
     if not inv:
         raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
-    await db.invoices.update_one({"id": invoice_id}, {"$set": {"status": "pending"}, "$unset": {"paid_at": "", "payment_method": "", "amount_paid": ""}})
-    await db.cash_transactions.delete_many({"reference_id": invoice_id})
-    return _clean(await db.invoices.find_one({"id": invoice_id}))
+    await db.invoices.update_one(scope, {"$set": {"status": "pending"}, "$unset": {"paid_at": "", "payment_method": "", "amount_paid": ""}})
+    await db.cash_transactions.delete_many({"reference_id": invoice_id, "academy_id": user["academy_id"]})
+    return _clean(await db.invoices.find_one(scope))
 
 
 @router.delete("/{invoice_id}")
 async def delete_invoice(invoice_id: str, user: dict = Depends(require_admin)):
-    res = await db.invoices.delete_one({"id": invoice_id})
+    res = await db.invoices.delete_one({"id": invoice_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
 
 
@@ -215,14 +220,14 @@ async def delete_invoice(invoice_id: str, user: dict = Depends(require_admin)):
 async def overdue_list(user: dict = Depends(require_admin)):
     today = date.today().isoformat()
     docs = await db.invoices.find({
-        "academy_id": DEFAULT_ACADEMY_ID,
+        "academy_id": user["academy_id"],
         "status": {"$ne": "paid"},
         "due_date": {"$lt": today},
     }).to_list(1000)
     result = []
     for d in docs:
         d.pop("_id", None)
-        student = await db.students.find_one({"id": d["student_id"]}, {"_id": 0})
+        student = await db.students.find_one({"id": d["student_id"], "academy_id": user["academy_id"]}, {"_id": 0})
         d["student"] = student
         try:
             days_late = (date.today() - date.fromisoformat(d["due_date"])).days

@@ -19,6 +19,10 @@ DEFAULT_ACADEMY_ID = "default-academy"
 async def init_db():
     # Indexes
     await db.users.create_index("email", unique=True)
+    await db.academies.create_index("id", unique=True)
+    # Tenant-scoped indexes keep both lookups and isolation explicit.
+    for collection in ("students", "teachers", "modalities", "classes", "enrollments", "plans", "invoices", "attendance", "graduations", "announcements", "cash_transactions", "whatsapp_reminders"):
+        await db[collection].create_index([("academy_id", 1), ("id", 1)])
     await db.login_attempts.create_index("identifier")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.students.create_index("email")
@@ -29,6 +33,7 @@ async def init_db():
 
     await seed_default_academy()
     await seed_admin()
+    await seed_superadmin()
     await seed_default_data()
 
 
@@ -47,6 +52,7 @@ async def seed_default_academy():
         "city": "",
         "state": "",
         "logo_url": "",
+        "status": "active",
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
@@ -74,6 +80,20 @@ async def seed_admin():
             {"email": admin_email},
             {"$set": {"password_hash": hash_password(admin_password)}},
         )
+
+
+async def seed_superadmin():
+    """Optional platform account; only created when explicitly configured."""
+    email = os.environ.get("SUPERADMIN_EMAIL", "").lower().strip()
+    password = os.environ.get("SUPERADMIN_PASSWORD", "")
+    if not email or not password or await db.users.find_one({"email": email}):
+        return
+    await db.users.insert_one({
+        "id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(password),
+        "name": os.environ.get("SUPERADMIN_NAME", "Superadmin"), "role": "superadmin",
+        "academy_id": None, "linked_id": None, "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    logger.info("Superadmin seeded from environment")
 
 
 async def seed_default_data():

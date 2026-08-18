@@ -3,14 +3,14 @@ from datetime import datetime, timezone, date, timedelta
 from fastapi import APIRouter, Depends
 
 from auth import require_admin, get_current_user
-from db import db, DEFAULT_ACADEMY_ID
+from db import db
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 @router.get("/admin")
 async def admin_dashboard(user: dict = Depends(require_admin)):
-    q = {"academy_id": DEFAULT_ACADEMY_ID}
+    q = {"academy_id": user["academy_id"]}
 
     total_students = await db.students.count_documents(q)
     active_students = await db.students.count_documents({**q, "status": "active"})
@@ -90,7 +90,7 @@ async def teacher_dashboard(user: dict = Depends(get_current_user)):
         return {"classes": [], "students_count": 0}
     teacher_id = user.get("linked_id") if user["role"] == "teacher" else None
 
-    query = {"academy_id": DEFAULT_ACADEMY_ID}
+    query = {"academy_id": user["academy_id"]}
     if teacher_id:
         query["teacher_id"] = teacher_id
 
@@ -99,7 +99,7 @@ async def teacher_dashboard(user: dict = Depends(get_current_user)):
         c.pop("_id", None)
         # Count students
         c["student_count"] = await db.enrollments.count_documents({
-            "class_id": c["id"], "status": "active"
+            "academy_id": user["academy_id"], "class_id": c["id"], "status": "active"
         })
 
     total_students = 0
@@ -121,26 +121,27 @@ async def student_dashboard(user: dict = Depends(get_current_user)):
     if not student_id:
         return {}
 
-    student = await db.students.find_one({"id": student_id})
+    academy_id = user["academy_id"]
+    student = await db.students.find_one({"id": student_id, "academy_id": academy_id})
     if not student:
         return {}
     student.pop("_id", None)
 
-    enrollments = await db.enrollments.find({"student_id": student_id, "status": "active"}).to_list(50)
+    enrollments = await db.enrollments.find({"academy_id": academy_id, "student_id": student_id, "status": "active"}).to_list(50)
     for e in enrollments:
         e.pop("_id", None)
         if e.get("modality_id"):
-            m = await db.modalities.find_one({"id": e["modality_id"]}, {"_id": 0})
+            m = await db.modalities.find_one({"id": e["modality_id"], "academy_id": academy_id}, {"_id": 0})
             e["modality"] = m
         if e.get("class_id"):
-            c = await db.classes.find_one({"id": e["class_id"]}, {"_id": 0})
+            c = await db.classes.find_one({"id": e["class_id"], "academy_id": academy_id}, {"_id": 0})
             e["class"] = c
         if e.get("plan_id"):
-            p = await db.plans.find_one({"id": e["plan_id"]}, {"_id": 0})
+            p = await db.plans.find_one({"id": e["plan_id"], "academy_id": academy_id}, {"_id": 0})
             e["plan"] = p
 
     # Attendance summary
-    docs = await db.attendance.find({"academy_id": DEFAULT_ACADEMY_ID}).to_list(2000)
+    docs = await db.attendance.find({"academy_id": academy_id}).to_list(2000)
     counts = {"present": 0, "absent": 0, "justified": 0, "trial": 0, "medical": 0}
     for att in docs:
         for r in att.get("records", []):
@@ -150,7 +151,7 @@ async def student_dashboard(user: dict = Depends(get_current_user)):
     freq = round((counts["present"] / total) * 100, 1) if total > 0 else 0
 
     # Financial - next invoice
-    invs = await db.invoices.find({"student_id": student_id, "status": {"$ne": "paid"}}).sort("due_date", 1).to_list(10)
+    invs = await db.invoices.find({"academy_id": academy_id, "student_id": student_id, "status": {"$ne": "paid"}}).sort("due_date", 1).to_list(10)
     next_invoice = None
     if invs:
         invs[0].pop("_id", None)

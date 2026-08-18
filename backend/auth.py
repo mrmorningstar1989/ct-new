@@ -26,11 +26,12 @@ def _secret() -> str:
     return os.environ["JWT_SECRET"]
 
 
-def create_access_token(user_id: str, email: str, role: str) -> str:
+def create_access_token(user_id: str, email: str, role: str, academy_id: str | None = None) -> str:
     payload = {
         "sub": user_id,
         "email": email,
         "role": role,
+        "academy_id": academy_id,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_MINUTES),
         "type": "access",
     }
@@ -74,6 +75,15 @@ async def get_current_user(request: Request) -> dict:
     user = await db.users.find_one({"id": payload["sub"]}, {"password_hash": 0, "_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
+    # The database is authoritative: never trust a tenant selected in the JWT.
+    # Every non-platform user must belong to an active academy.
+    if user.get("role") != "superadmin":
+        academy_id = user.get("academy_id")
+        if not academy_id:
+            raise HTTPException(status_code=403, detail="Usuário sem academia vinculada")
+        academy = await db.academies.find_one({"id": academy_id}, {"_id": 0, "status": 1})
+        if not academy or academy.get("status", "active") != "active":
+            raise HTTPException(status_code=403, detail="Academia indisponível")
     return user
 
 
@@ -87,3 +97,4 @@ def require_roles(*roles: str):
 
 require_admin = require_roles("admin")
 require_admin_or_teacher = require_roles("admin", "teacher")
+require_superadmin = require_roles("superadmin")
