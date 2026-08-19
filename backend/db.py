@@ -23,6 +23,9 @@ async def init_db():
     # Tenant-scoped indexes keep both lookups and isolation explicit.
     for collection in ("students", "teachers", "modalities", "classes", "enrollments", "plans", "invoices", "attendance", "graduations", "announcements", "cash_transactions", "whatsapp_reminders"):
         await db[collection].create_index([("academy_id", 1), ("id", 1)])
+    await db.platform_plans.create_index("id", unique=True)
+    await db.academy_subscriptions.create_index("academy_id", unique=True)
+    await db.platform_invoices.create_index([("academy_id", 1), ("competency", 1)], unique=True)
     await db.login_attempts.create_index("identifier")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.students.create_index("email")

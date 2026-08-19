@@ -320,3 +320,31 @@ class AcademyCreate(BaseModel):
 
 class AcademyStatusUpdate(BaseModel):
     status: str  # active or inactive
+
+
+class PlatformPlanCreate(BaseModel):
+    name: str
+    value: float
+    periodicity: str = "monthly"
+    description: Optional[str] = None
+    status: str = "active"
+
+
+class PlatformPlanUpdate(BaseModel):
+    name: Optional[str] = None
+    value: Optional[float] = None
+    periodicity: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+
+
+class AcademySubscriptionUpdate(BaseModel):
+    plan_id: str
+    start_date: Optional[str] = None
+
+
+class PlatformPaymentRegister(BaseModel):
+    paid_at: Optional[str] = None
+    payment_method: str = "pix"
+    amount_paid: Optional[float] = None
+    notes: Optional[str] = None
