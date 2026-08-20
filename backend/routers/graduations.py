@@ -1,11 +1,11 @@
-"""Graduations / Faixas history."""
+﻿"""Graduations / Faixas history."""
 import uuid
 from datetime import datetime, timezone, date
 from fastapi import APIRouter, HTTPException, Depends
 
-from auth import require_admin, get_current_user
-from db import db
-from models import GraduationCreate
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import GraduationCreate
 
 router = APIRouter(prefix="/api/graduations", tags=["graduations"])
 
@@ -19,9 +19,9 @@ def _clean(doc: dict) -> dict:
 async def create_graduation(payload: GraduationCreate, user: dict = Depends(require_admin)):
     academy_id = user["academy_id"]
     if not await db.students.find_one({"id": payload.student_id, "academy_id": academy_id}, {"_id": 1}):
-        raise HTTPException(status_code=404, detail="Aluno não encontrado na academia")
+        raise HTTPException(status_code=404, detail="Aluno nÃ£o encontrado na academia")
     if not await db.modalities.find_one({"id": payload.modality_id, "academy_id": academy_id}, {"_id": 1}):
-        raise HTTPException(status_code=404, detail="Modalidade não encontrada na academia")
+        raise HTTPException(status_code=404, detail="Modalidade nÃ£o encontrada na academia")
     now = datetime.now(timezone.utc).isoformat()
     doc = payload.model_dump()
     doc.update({
@@ -66,3 +66,4 @@ async def current_belt(student_id: str, modality_id: str, user: dict = Depends(g
 async def delete_graduation(graduation_id: str, user: dict = Depends(require_admin)):
     res = await db.graduations.delete_one({"id": graduation_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
+

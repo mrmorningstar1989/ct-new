@@ -1,11 +1,11 @@
-"""Modalities CRUD with belt system."""
+﻿"""Modalities CRUD with belt system."""
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 
-from auth import require_admin, get_current_user
-from db import db
-from models import ModalityCreate, ModalityUpdate
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import ModalityCreate, ModalityUpdate
 
 router = APIRouter(prefix="/api/modalities", tags=["modalities"])
 
@@ -38,7 +38,7 @@ async def create_modality(payload: ModalityCreate, user: dict = Depends(require_
 async def get_modality(modality_id: str, user: dict = Depends(get_current_user)):
     doc = await db.modalities.find_one({"id": modality_id, "academy_id": user["academy_id"]})
     if not doc:
-        raise HTTPException(status_code=404, detail="Modalidade não encontrada")
+        raise HTTPException(status_code=404, detail="Modalidade nÃ£o encontrada")
     return _clean(doc)
 
 
@@ -48,7 +48,7 @@ async def update_modality(modality_id: str, payload: ModalityUpdate, user: dict 
     scope = {"id": modality_id, "academy_id": user["academy_id"]}
     res = await db.modalities.update_one(scope, {"$set": data})
     if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Modalidade não encontrada")
+        raise HTTPException(status_code=404, detail="Modalidade nÃ£o encontrada")
     return _clean(await db.modalities.find_one(scope))
 
 
@@ -56,3 +56,4 @@ async def update_modality(modality_id: str, payload: ModalityUpdate, user: dict 
 async def delete_modality(modality_id: str, user: dict = Depends(require_admin)):
     res = await db.modalities.delete_one({"id": modality_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
+

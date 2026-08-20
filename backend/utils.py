@@ -1,4 +1,4 @@
-"""Business day and other helpers."""
+﻿"""Business day and other helpers."""
 from datetime import date, timedelta
 
 
@@ -19,3 +19,4 @@ def month_end(year: int, month: int) -> date:
     from calendar import monthrange
     _, last = monthrange(year, month)
     return date(year, month, last)
+

@@ -1,10 +1,10 @@
-"""One-time, non-destructive tenant backfill for legacy CT Warrior data.
+﻿"""One-time, non-destructive tenant backfill for legacy ZenkaiOS data.
 
 Run from backend only after taking a database backup:
-    python migrate_tenants.py
+    python -m backend.migrate_tenants
 """
 import asyncio
-from db import db, DEFAULT_ACADEMY_ID
+from .db import db, DEFAULT_ACADEMY_ID
 
 TENANT_COLLECTIONS = (
     "users", "students", "teachers", "modalities", "classes", "enrollments", "plans",
@@ -23,3 +23,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

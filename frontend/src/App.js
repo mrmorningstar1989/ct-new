@@ -9,13 +9,14 @@ import TeacherLayout from "@/components/layout/TeacherLayout";
 import StudentLayout from "@/components/layout/StudentLayout";
 
 import Login from "@/pages/Login";
+import StudentSignup from "@/pages/StudentSignup";
 import Platform from "@/pages/Platform";
+import AdminInvite from "@/pages/AdminInvite";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import Students from "@/pages/admin/Students";
 import Teachers from "@/pages/admin/Teachers";
 import Modalities from "@/pages/admin/Modalities";
 import Classes from "@/pages/admin/Classes";
-import Enrollments from "@/pages/admin/Enrollments";
 import AttendancePage from "@/pages/admin/Attendance";
 import Graduations from "@/pages/admin/Graduations";
 import Plans from "@/pages/admin/Plans";
@@ -44,7 +45,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/a/:academySlug/login" element={<Login />} />
+            <Route path="/a/:academySlug/cadastre-se" element={<StudentSignup />} />
             <Route path="/plataforma" element={<ProtectedRoute roles={["superadmin"]}><Platform /></ProtectedRoute>} />
+            <Route path="/convite-admin" element={<AdminInvite />} />
 
             <Route
               path="/admin"
@@ -56,10 +60,11 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="alunos" element={<Students />} />
+              <Route path="alunos/novo" element={<StudentSignup adminMode />} />
               <Route path="professores" element={<Teachers />} />
               <Route path="modalidades" element={<Modalities />} />
               <Route path="turmas" element={<Classes />} />
-              <Route path="matriculas" element={<Enrollments />} />
+              <Route path="matriculas" element={<Navigate to="/admin/alunos" replace />} />
               <Route path="presenca" element={<AttendancePage />} />
               <Route path="graduacoes" element={<Graduations />} />
               <Route path="planos" element={<Plans />} />

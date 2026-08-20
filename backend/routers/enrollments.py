@@ -1,12 +1,12 @@
-"""Enrollments (Matrículas)."""
+﻿"""Enrollments (MatrÃ­culas)."""
 import uuid
 from datetime import datetime, timezone, date
 from fastapi import APIRouter, HTTPException, Depends
 
-from auth import require_admin, get_current_user
-from db import db
-from models import EnrollmentCreate, EnrollmentUpdate
-from utils import fifth_business_day
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import EnrollmentCreate, EnrollmentUpdate
+from ..utils import fifth_business_day
 
 router = APIRouter(prefix="/api/enrollments", tags=["enrollments"])
 
@@ -59,10 +59,10 @@ async def create_enrollment(payload: EnrollmentCreate, user: dict = Depends(requ
     academy_id = user["academy_id"]
     # All referenced records must be owned by this academy.
     if not await db.students.find_one({"id": payload.student_id, "academy_id": academy_id}, {"_id": 1}):
-        raise HTTPException(status_code=404, detail="Aluno não encontrado na academia")
+        raise HTTPException(status_code=404, detail="Aluno nÃ£o encontrado na academia")
     for collection, entity_id, label in (("modalities", payload.modality_id, "Modalidade"), ("classes", payload.class_id, "Turma"), ("plans", payload.plan_id, "Plano")):
         if entity_id and not await db[collection].find_one({"id": entity_id, "academy_id": academy_id}, {"_id": 1}):
-            raise HTTPException(status_code=404, detail=f"{label} não encontrado na academia")
+            raise HTTPException(status_code=404, detail=f"{label} nÃ£o encontrado na academia")
     now = datetime.now(timezone.utc).isoformat()
     doc = payload.model_dump()
     discount = float(doc.get("custom_discount") or 0)
@@ -90,7 +90,7 @@ async def update_enrollment(enrollment_id: str, payload: EnrollmentUpdate, user:
     scope = {"id": enrollment_id, "academy_id": user["academy_id"]}
     res = await db.enrollments.update_one(scope, {"$set": data})
     if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Matrícula não encontrada")
+        raise HTTPException(status_code=404, detail="MatrÃ­cula nÃ£o encontrada")
     return _clean(await db.enrollments.find_one(scope))
 
 
@@ -98,3 +98,4 @@ async def update_enrollment(enrollment_id: str, payload: EnrollmentUpdate, user:
 async def delete_enrollment(enrollment_id: str, user: dict = Depends(require_admin)):
     res = await db.enrollments.delete_one({"id": enrollment_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
+

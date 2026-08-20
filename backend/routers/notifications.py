@@ -1,9 +1,9 @@
-"""Notification center - identifies students needing attention (overdue, low freq, near graduation)."""
+﻿"""Notification center - identifies students needing attention (overdue, low freq, near graduation)."""
 from datetime import datetime, timezone, date, timedelta
 from fastapi import APIRouter, Depends
 
-from auth import require_admin
-from db import db
+from ..auth import require_admin
+from ..db import db
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -151,3 +151,4 @@ async def summary(user: dict = Depends(require_admin)):
             "upcoming_graduations": len(upcoming_grads),
         },
     }
+

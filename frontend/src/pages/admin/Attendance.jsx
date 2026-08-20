@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Check, X, ClipboardCheck, Download } from "lucide-react";
+import { Check, X, ClipboardCheck, Download, Camera } from "lucide-react";
 import { createPdf, addTable, savePdf, dtBR } from "@/lib/pdf";
+import { biometricFeatureEnabled } from "@/lib/features";
 
 const STATUSES = [
   { key: "present", label: "P", full: "Presente", color: "bg-emerald-600 border-emerald-600" },
@@ -22,6 +23,7 @@ export default function AttendancePage() {
   const [dateStr, setDateStr] = useState(new Date().toISOString().slice(0, 10));
   const [students, setStudents] = useState([]);
   const [records, setRecords] = useState({}); // student_id -> status
+  const [groupPhoto, setGroupPhoto] = useState("");
 
   useEffect(() => { api.get("/classes").then(r => setClasses(r.data)); }, []);
 
@@ -53,6 +55,20 @@ export default function AttendancePage() {
       };
       await api.post("/attendance", payload);
       toast.success("Chamada registrada");
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const readGroupPhoto = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) { toast.error("Use uma imagem de turma de até 5 MB"); return; }
+    const reader = new FileReader(); reader.onload = () => setGroupPhoto(String(reader.result)); reader.readAsDataURL(file);
+  };
+  const requestSuggestions = async () => {
+    if (!classId || !groupPhoto) { toast.error("Selecione uma turma e envie a foto do treino"); return; }
+    try {
+      await api.post("/biometrics/attendance-suggestions", { class_id: classId, date: dateStr, image_data_url: groupPhoto });
+      toast.success("Sugestões prontas para revisão");
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
@@ -100,6 +116,7 @@ export default function AttendancePage() {
             <Check className="w-4 h-4 mr-1" /> Todos presentes
           </Button>
         </div>
+        {biometricFeatureEnabled && <div className="md:col-span-3 border-t border-zinc-800 pt-4 flex flex-wrap gap-3 items-end"><F label="Foto da turma (opcional)"><Input type="file" accept="image/*" capture="environment" onChange={readGroupPhoto} /></F><Button onClick={requestSuggestions} variant="outline" className="rounded-none border-zinc-700 hover:border-red-600"><Camera className="w-4 h-4 mr-2" /> Sugerir presença por foto</Button><span className="text-xs text-zinc-500 max-w-md">A foto não é armazenada. Só alunos com consentimento biométrico podem ser sugeridos e o professor sempre confirma.</span></div>}
       </div>
 
       {classId && (

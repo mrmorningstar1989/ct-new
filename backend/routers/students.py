@@ -1,12 +1,12 @@
-"""Students CRUD."""
+﻿"""Students CRUD."""
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Optional
 
-from auth import require_admin, require_admin_or_teacher, hash_password, get_current_user
-from db import db
-from models import StudentCreate, StudentUpdate, StudentPasswordReset
+from ..auth import require_admin, require_admin_or_teacher, hash_password, get_current_user
+from ..db import db
+from ..models import StudentCreate, StudentUpdate, StudentPasswordReset
 
 router = APIRouter(prefix="/api/students", tags=["students"])
 
@@ -25,7 +25,7 @@ async def _next_matricula(academy_id: str) -> str:
         return_document=True,
     )
     seq = (doc or {}).get("seq", 1)
-    return f"CT{seq:05d}"
+    return f"ZK{seq:05d}"
 
 
 @router.get("")
@@ -76,7 +76,7 @@ async def create_student(payload: StudentCreate, user: dict = Depends(require_ad
     # Optional linked user (student login)
     if payload.create_login and payload.email and password:
         email = payload.email.lower()
-        existing = await db.users.find_one({"email": email})
+        existing = await db.users.find_one({"email": email, "academy_id": academy_id})
         if not existing:
             await db.users.insert_one({
                 "id": str(uuid.uuid4()),
@@ -99,7 +99,7 @@ async def get_student(student_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Acesso negado")
     doc = await db.students.find_one({"id": student_id, "academy_id": user["academy_id"]})
     if not doc:
-        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+        raise HTTPException(status_code=404, detail="Aluno nÃ£o encontrado")
     return _clean(doc)
 
 
@@ -112,7 +112,7 @@ async def update_student(student_id: str, payload: StudentUpdate, user: dict = D
     scope = {"id": student_id, "academy_id": user["academy_id"]}
     res = await db.students.update_one(scope, {"$set": data})
     if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+        raise HTTPException(status_code=404, detail="Aluno nÃ£o encontrado")
     doc = await db.students.find_one(scope)
     return _clean(doc)
 
@@ -133,7 +133,7 @@ async def reset_student_password(student_id: str, payload: StudentPasswordReset,
         raise HTTPException(status_code=400, detail="A senha deve ter ao menos 4 caracteres")
     student = await db.students.find_one({"id": student_id, "academy_id": user["academy_id"]})
     if not student:
-        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+        raise HTTPException(status_code=404, detail="Aluno nÃ£o encontrado")
 
     existing = await db.users.find_one({"linked_id": student_id, "role": "student", "academy_id": user["academy_id"]})
     now = datetime.now(timezone.utc).isoformat()
@@ -145,18 +145,18 @@ async def reset_student_password(student_id: str, payload: StudentPasswordReset,
         )
         return {"ok": True, "email": existing["email"], "action": "updated"}
 
-    # No login yet — create one. Email must be provided or exist on student
+    # No login yet â€” create one. Email must be provided or exist on student
     email = (payload.email or student.get("email") or "").lower().strip()
     if not email:
-        raise HTTPException(status_code=400, detail="Email é obrigatório para criar o acesso do aluno")
+        raise HTTPException(status_code=400, detail="Email Ã© obrigatÃ³rio para criar o acesso do aluno")
 
     # Update student email if it was blank
     if not student.get("email"):
         await db.students.update_one({"id": student_id, "academy_id": user["academy_id"]}, {"$set": {"email": email}})
 
     # Ensure email not taken
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Este email já está em uso por outra conta")
+    if await db.users.find_one({"email": email, "academy_id": user["academy_id"]}):
+        raise HTTPException(status_code=400, detail="Este email jÃ¡ estÃ¡ em uso nesta academia")
 
     await db.users.insert_one({
         "id": str(uuid.uuid4()),
@@ -178,3 +178,4 @@ async def student_login_status(student_id: str, user: dict = Depends(require_adm
         "has_login": bool(linked),
         "email": linked.get("email") if linked else None,
     }
+

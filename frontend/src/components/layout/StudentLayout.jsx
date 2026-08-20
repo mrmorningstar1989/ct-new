@@ -22,11 +22,9 @@ export default function StudentLayout() {
     <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col">
       <header className="h-16 border-b border-zinc-800 flex items-center px-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-red-600 flex items-center justify-center">
-            <span className="font-heading text-white text-xl leading-none">W</span>
-          </div>
+          <img src="/brand/zenkaios-logo.png" alt="ZenkaiOS" className="h-10 w-auto" />
           <div>
-            <div className="font-heading text-lg leading-none">CT WARRIOR</div>
+            <div className="font-heading text-lg leading-none">ZENKAIOS</div>
             <div className="text-[10px] uppercase tracking-widest text-zinc-500">Área do Aluno</div>
           </div>
         </div>

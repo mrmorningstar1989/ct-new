@@ -1,9 +1,9 @@
-"""Dashboard aggregations."""
+﻿"""Dashboard aggregations."""
 from datetime import datetime, timezone, date, timedelta
 from fastapi import APIRouter, Depends
 
-from auth import require_admin, get_current_user
-from db import db
+from ..auth import require_admin, get_current_user
+from ..db import db
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -163,3 +163,4 @@ async def student_dashboard(user: dict = Depends(get_current_user)):
         "attendance": {"counts": counts, "total": total, "frequency_pct": freq},
         "next_invoice": next_invoice,
     }
+

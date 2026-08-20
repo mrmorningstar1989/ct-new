@@ -23,7 +23,7 @@ export async function createPdf(title, subtitle, academyOverride) {
     } catch { /* ignore */ }
   }
 
-  const name = (academy.name || "CT WARRIOR").toUpperCase();
+  const name = (academy.name || "ZENKAIOS").toUpperCase();
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(20, 20, 20);

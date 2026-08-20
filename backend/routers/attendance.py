@@ -1,12 +1,12 @@
-"""Attendance / Chamada."""
+﻿"""Attendance / Chamada."""
 import uuid
 from datetime import datetime, timezone, date
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 
-from auth import require_admin_or_teacher, get_current_user
-from db import db
-from models import AttendanceCreate
+from ..auth import require_admin_or_teacher, get_current_user
+from ..db import db
+from ..models import AttendanceCreate
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -21,7 +21,7 @@ async def register_attendance(payload: AttendanceCreate, user: dict = Depends(re
     academy_id = user["academy_id"]
     cls = await db.classes.find_one({"id": payload.class_id, "academy_id": academy_id}, {"_id": 1, "teacher_id": 1})
     if not cls or (user["role"] == "teacher" and cls.get("teacher_id") != user.get("linked_id")):
-        raise HTTPException(status_code=404, detail="Turma não encontrada na academia")
+        raise HTTPException(status_code=404, detail="Turma nÃ£o encontrada na academia")
     now = datetime.now(timezone.utc).isoformat()
     # Replace existing record for that class+date
     await db.attendance.delete_many({"academy_id": academy_id, "class_id": payload.class_id, "date": payload.date})
@@ -94,3 +94,4 @@ async def get_class_attendance(class_id: str, date_str: str, user: dict = Depend
     if not doc:
         return {"class_id": class_id, "date": date_str, "records": []}
     return _clean(doc)
+

@@ -1,11 +1,11 @@
-"""Plans CRUD."""
+﻿"""Plans CRUD."""
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 
-from auth import require_admin, get_current_user
-from db import db
-from models import PlanCreate, PlanUpdate
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import PlanCreate, PlanUpdate
 
 router = APIRouter(prefix="/api/plans", tags=["plans"])
 
@@ -39,7 +39,7 @@ async def update_plan(plan_id: str, payload: PlanUpdate, user: dict = Depends(re
     scope = {"id": plan_id, "academy_id": user["academy_id"]}
     res = await db.plans.update_one(scope, {"$set": data})
     if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Plano não encontrado")
+        raise HTTPException(status_code=404, detail="Plano nÃ£o encontrado")
     return _clean(await db.plans.find_one(scope))
 
 
@@ -47,3 +47,4 @@ async def update_plan(plan_id: str, payload: PlanUpdate, user: dict = Depends(re
 async def delete_plan(plan_id: str, user: dict = Depends(require_admin)):
     res = await db.plans.delete_one({"id": plan_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
+

@@ -1,4 +1,4 @@
-"""Invoices (Mensalidades) and Payments."""
+﻿"""Invoices (Mensalidades) and Payments."""
 import os
 import uuid
 import hmac
@@ -6,10 +6,10 @@ from datetime import datetime, timezone, date
 from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from typing import Optional
 
-from auth import require_admin, get_current_user
-from db import db
-from models import InvoiceCreate, PaymentRegister
-from utils import fifth_business_day
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import InvoiceCreate, PaymentRegister
+from ..utils import fifth_business_day
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -121,7 +121,7 @@ async def list_invoices(
 async def create_invoice(payload: InvoiceCreate, user: dict = Depends(require_admin)):
     academy_id = user["academy_id"]
     if not await db.students.find_one({"id": payload.student_id, "academy_id": academy_id}, {"_id": 1}):
-        raise HTTPException(status_code=404, detail="Aluno não encontrado na academia")
+        raise HTTPException(status_code=404, detail="Aluno nÃ£o encontrado na academia")
     doc = payload.model_dump()
     doc.update({
         "id": str(uuid.uuid4()),
@@ -142,7 +142,7 @@ async def generate_month(competency: Optional[str] = None, user: dict = Depends(
             y, m = competency.split("-")
             year, month = int(y), int(m)
         except Exception:
-            raise HTTPException(status_code=400, detail="Formato inválido. Use YYYY-MM")
+            raise HTTPException(status_code=400, detail="Formato invÃ¡lido. Use YYYY-MM")
     else:
         today = date.today()
         year, month = today.year, today.month
@@ -168,7 +168,7 @@ async def register_payment(invoice_id: str, payload: PaymentRegister, user: dict
     scope = {"id": invoice_id, "academy_id": user["academy_id"]}
     inv = await db.invoices.find_one(scope)
     if not inv:
-        raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
+        raise HTTPException(status_code=404, detail="Mensalidade nÃ£o encontrada")
     now = datetime.now(timezone.utc).isoformat()
     paid_at = payload.paid_at or date.today().isoformat()
     amount_paid = payload.amount_paid
@@ -204,7 +204,7 @@ async def reopen_payment(invoice_id: str, user: dict = Depends(require_admin)):
     scope = {"id": invoice_id, "academy_id": user["academy_id"]}
     inv = await db.invoices.find_one(scope)
     if not inv:
-        raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
+        raise HTTPException(status_code=404, detail="Mensalidade nÃ£o encontrada")
     await db.invoices.update_one(scope, {"$set": {"status": "pending"}, "$unset": {"paid_at": "", "payment_method": "", "amount_paid": ""}})
     await db.cash_transactions.delete_many({"reference_id": invoice_id, "academy_id": user["academy_id"]})
     return _clean(await db.invoices.find_one(scope))
@@ -237,3 +237,4 @@ async def overdue_list(user: dict = Depends(require_admin)):
         d["status"] = "overdue"
         result.append(d)
     return result
+

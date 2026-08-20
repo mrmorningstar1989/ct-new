@@ -1,10 +1,10 @@
-"""Settings for the academy attached to the authenticated user."""
+﻿"""Settings for the academy attached to the authenticated user."""
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 
-from auth import require_admin, get_current_user
-from db import db
-from models import AcademySettingsUpdate
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import AcademySettingsUpdate
 
 router = APIRouter(prefix="/api/academy", tags=["academy"])
 
@@ -33,3 +33,4 @@ async def update_settings(payload: AcademySettingsUpdate, user: dict = Depends(r
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.academies.update_one({"id": user["academy_id"]}, {"$set": data})
     return _clean(await db.academies.find_one({"id": user["academy_id"]}))
+

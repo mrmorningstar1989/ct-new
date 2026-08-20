@@ -1,11 +1,11 @@
-"""Announcements / Avisos."""
+﻿"""Announcements / Avisos."""
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 
-from auth import require_admin, get_current_user
-from db import db
-from models import AnnouncementCreate
+from ..auth import require_admin, get_current_user
+from ..db import db
+from ..models import AnnouncementCreate
 
 router = APIRouter(prefix="/api/announcements", tags=["announcements"])
 
@@ -46,3 +46,4 @@ async def create_announcement(payload: AnnouncementCreate, user: dict = Depends(
 async def delete_announcement(ann_id: str, user: dict = Depends(require_admin)):
     res = await db.announcements.delete_one({"id": ann_id, "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
+

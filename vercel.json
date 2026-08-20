@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "yarn --cwd frontend install --frozen-lockfile",
+  "buildCommand": "yarn --cwd frontend build",
+  "outputDirectory": "frontend/build",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "includeFiles": "backend/**",
+      "excludeFiles": "{backend/tests/**,frontend/**,test_reports/**,tests/**,.venv/**}"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/reminders/cron/whatsapp-daily",
+      "schedule": "0 10 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}

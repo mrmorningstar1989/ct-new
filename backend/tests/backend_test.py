@@ -1,4 +1,4 @@
-"""End-to-end backend tests for CT Warrior Academy Management System.
+﻿"""End-to-end backend tests for ZenkaiOS Academy Management System.
 
 Covers auth, RBAC, students, teachers, modalities, classes, plans, enrollments,
 invoices, attendance, graduations, announcements and dashboards.
@@ -10,11 +10,16 @@ from datetime import date
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://warrior-admin.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("TEST_API_URL", "http://127.0.0.1:8000").rstrip("/")
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "brunodorettom@gmail.com"
-ADMIN_PASSWORD = "admin123"
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD")
+
+pytestmark = pytest.mark.skipif(
+    not ADMIN_EMAIL or not ADMIN_PASSWORD,
+    reason="Set TEST_ADMIN_EMAIL and TEST_ADMIN_PASSWORD before running end-to-end tests.",
+)
 
 
 # ---------------- Fixtures ----------------
@@ -136,7 +141,7 @@ class TestStudents:
         assert r.status_code == 200, r.text
         d = r.json()
         assert d["full_name"] == payload["full_name"]
-        assert d["matricula"].startswith("CT") and len(d["matricula"]) == 7
+        assert d["matricula"].startswith("ZK") and len(d["matricula"]) == 7
         state["student_id"] = d["id"]
         state["student_email"] = payload["email"]
         state["student_password"] = payload["password"]
@@ -153,9 +158,9 @@ class TestStudents:
         assert any(s["id"] == state["student_id"] for s in r.json())
 
     def test_update_student(self, admin_session, state):
-        r = admin_session.patch(f"{API}/students/{state['student_id']}", json={"city": "São Paulo"})
+        r = admin_session.patch(f"{API}/students/{state['student_id']}", json={"city": "SÃ£o Paulo"})
         assert r.status_code == 200
-        assert r.json()["city"] == "São Paulo"
+        assert r.json()["city"] == "SÃ£o Paulo"
 
 
 # ---------------- Teachers ----------------
@@ -380,3 +385,4 @@ class TestCleanup:
             resource, _id = path
             if _id:
                 admin_session.delete(f"{API}/{resource}/{_id}")
+

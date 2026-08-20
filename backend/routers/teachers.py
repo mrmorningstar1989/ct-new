@@ -1,12 +1,12 @@
-"""Teachers CRUD."""
+﻿"""Teachers CRUD."""
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 
-from auth import require_admin, require_admin_or_teacher, hash_password
-from db import db
-from models import TeacherCreate, TeacherUpdate
+from ..auth import require_admin, require_admin_or_teacher, hash_password
+from ..db import db
+from ..models import TeacherCreate, TeacherUpdate
 
 router = APIRouter(prefix="/api/teachers", tags=["teachers"])
 
@@ -61,7 +61,7 @@ async def create_teacher(payload: TeacherCreate, user: dict = Depends(require_ad
 async def get_teacher(teacher_id: str, user: dict = Depends(require_admin_or_teacher)):
     doc = await db.teachers.find_one({"id": teacher_id, "academy_id": user["academy_id"]})
     if not doc:
-        raise HTTPException(status_code=404, detail="Professor não encontrado")
+        raise HTTPException(status_code=404, detail="Professor nÃ£o encontrado")
     return _clean(doc)
 
 
@@ -72,7 +72,7 @@ async def update_teacher(teacher_id: str, payload: TeacherUpdate, user: dict = D
     scope = {"id": teacher_id, "academy_id": user["academy_id"]}
     res = await db.teachers.update_one(scope, {"$set": data})
     if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Professor não encontrado")
+        raise HTTPException(status_code=404, detail="Professor nÃ£o encontrado")
     return _clean(await db.teachers.find_one(scope))
 
 
@@ -82,3 +82,4 @@ async def delete_teacher(teacher_id: str, user: dict = Depends(require_admin)):
     res = await db.teachers.delete_one(scope)
     await db.users.delete_many({"linked_id": teacher_id, "role": "teacher", "academy_id": user["academy_id"]})
     return {"deleted": res.deleted_count}
+

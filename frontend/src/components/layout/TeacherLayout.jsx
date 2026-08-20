@@ -21,11 +21,9 @@ export default function TeacherLayout() {
     <div className="min-h-screen flex bg-[#0A0A0A] text-white">
       <aside className="w-60 border-r border-zinc-800 flex flex-col">
         <div className="h-16 px-5 flex items-center border-b border-zinc-800">
-          <div className="w-9 h-9 bg-red-600 flex items-center justify-center mr-3">
-            <span className="font-heading text-white text-xl leading-none">W</span>
-          </div>
+          <img src="/brand/zenkaios-logo.png" alt="ZenkaiOS" className="h-10 w-auto mr-3" />
           <div>
-            <div className="font-heading text-lg leading-none">CT WARRIOR</div>
+            <div className="font-heading text-lg leading-none">ZENKAIOS</div>
             <div className="text-[10px] uppercase tracking-widest text-zinc-500">Professor</div>
           </div>
         </div>

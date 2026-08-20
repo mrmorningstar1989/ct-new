@@ -1,4 +1,4 @@
-"""Pydantic models for the API layer."""
+﻿"""Pydantic models for the API layer."""
 from typing import Optional, List, Any
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    academy_slug: Optional[str] = None
 
 
 class RegisterRequest(BaseModel):
@@ -31,6 +32,26 @@ class EmergencyContact(BaseModel):
     name: str = ""
     relationship: str = ""
     phone: str = ""
+
+
+class PublicStudentRegistration(BaseModel):
+    """Required self-service enrollment data for one academy."""
+    model_config = ConfigDict(extra="ignore")
+    full_name: str = Field(min_length=3)
+    email: EmailStr
+    password: str = Field(min_length=8)
+    cpf: str = Field(min_length=11)
+    birth_date: str
+    phone: str = Field(min_length=8)
+    address: str = Field(min_length=3)
+    city: str = Field(min_length=2)
+    state: str = Field(min_length=2, max_length=2)
+    emergency_contact: EmergencyContact
+    parq: dict
+    anamnesis: dict
+    selfie_data_url: str = Field(min_length=32)
+    biometric_consent: bool = False
+    guardian_biometric_consent: bool = False
 
 
 class StudentCreate(BaseModel):
@@ -267,6 +288,16 @@ class AttendanceCreate(BaseModel):
     records: List[AttendanceRecord]
 
 
+class BiometricAttendanceSuggestionRequest(BaseModel):
+    class_id: str
+    date: str
+    image_data_url: str = Field(min_length=32)
+
+
+class BiometricAttendanceConfirmation(BaseModel):
+    present_student_ids: List[str]
+
+
 # ---------------- Graduation ----------------
 class GraduationCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -312,6 +343,7 @@ class AcademySettingsUpdate(BaseModel):
 # ---------------- Platform administration ----------------
 class AcademyCreate(BaseModel):
     name: str
+    slug: Optional[str] = None
     admin_name: str
     admin_email: EmailStr
     admin_password: str
@@ -319,7 +351,25 @@ class AcademyCreate(BaseModel):
 
 
 class AcademyStatusUpdate(BaseModel):
-    status: str  # active or inactive
+    status: str
+    reason: Optional[str] = None
+
+
+class AcademyUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    cnpj: Optional[str] = None
+
+
+class PlatformAdminInviteCreate(BaseModel):
+    name: str
+    email: EmailStr
+    role: str = "admin"
+
+
+class PlatformAdminInviteAccept(BaseModel):
+    token: str
+    password: str
 
 
 class PlatformPlanCreate(BaseModel):
@@ -348,3 +398,4 @@ class PlatformPaymentRegister(BaseModel):
     payment_method: str = "pix"
     amount_paid: Optional[float] = None
     notes: Optional[str] = None
+

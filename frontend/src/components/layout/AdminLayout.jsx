@@ -15,7 +15,6 @@ const NAV = [
   { to: "/admin/professores", label: "Professores", icon: GraduationCap },
   { to: "/admin/modalidades", label: "Modalidades", icon: Dumbbell },
   { to: "/admin/turmas", label: "Turmas", icon: CalendarDays },
-  { to: "/admin/matriculas", label: "Matrículas", icon: ClipboardCheck },
   { to: "/admin/presenca", label: "Presença", icon: ClipboardCheck },
   { to: "/admin/graduacoes", label: "Graduações", icon: Award },
   { to: "/admin/planos", label: "Planos", icon: Wallet },
@@ -46,11 +45,9 @@ export default function AdminLayout() {
       >
         <div className="h-16 px-6 flex items-center border-b border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-red-600 flex items-center justify-center">
-              <span className="font-heading text-white text-xl leading-none">W</span>
-            </div>
+            <img src="/brand/zenkaios-logo.png" alt="ZenkaiOS" className="h-10 w-auto" />
             <div>
-              <div className="font-heading text-xl leading-none tracking-tight" data-testid="brand-name">CT WARRIOR</div>
+              <div className="font-heading text-xl leading-none tracking-tight" data-testid="brand-name">ZENKAIOS</div>
               <div className="text-[10px] uppercase tracking-widest text-zinc-500">Admin Panel</div>
             </div>
           </div>

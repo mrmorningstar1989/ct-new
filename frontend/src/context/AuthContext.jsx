@@ -20,9 +20,9 @@ export function AuthProvider({ children }) {
 
   useEffect(() => { bootstrap(); }, [bootstrap]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, academySlug) => {
     try {
-      const { data } = await api.post("/auth/login", { email, password });
+      const { data } = await api.post("/auth/login", { email, password, academy_slug: academySlug || undefined });
       setUser(data);
       return { ok: true, user: data };
     } catch (e) {

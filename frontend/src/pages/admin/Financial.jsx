@@ -78,7 +78,7 @@ export default function Financial() {
     const phone = (s?.whatsapp || s?.phone || "").replace(/\D/g, "");
     const value = inv.early_value != null ? `Até ${dtBR(inv.due_date)}: ${brl(inv.early_value)} | Após: ${brl(inv.final_value || inv.value)}` : brl(inv.final_value || inv.value);
     const msg = encodeURIComponent(
-      `Olá ${s?.full_name || ""}! Passando para lembrar da mensalidade referente a ${inv.competency}: ${value}. Vencimento: ${new Date(inv.due_date).toLocaleDateString("pt-BR")}. - CT Warrior`
+      `Olá ${s?.full_name || ""}! Passando para lembrar da mensalidade referente a ${inv.competency}: ${value}. Vencimento: ${new Date(inv.due_date).toLocaleDateString("pt-BR")}. - Equipe da academia`
     );
     window.open(`https://wa.me/55${phone}?text=${msg}`, "_blank");
   };

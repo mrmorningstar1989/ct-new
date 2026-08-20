@@ -9,10 +9,10 @@ import { toast } from "sonner";
 import { brl, dtBR } from "@/lib/pdf";
 
 const templates = {
-  overdue: (n) => `Olá ${n}! Aqui é do CT Warrior 🥋\n\nVimos que sua mensalidade de ${"{competency}"} (${"{value}"}) está em atraso há ${"{days_late}"} dias. Podemos combinar o pagamento? Estamos à disposição!\n\nEquipe CT Warrior`,
-  upcoming: (n) => `Olá ${n}! Passando para lembrar da sua mensalidade CT Warrior 🥋\n\nCompetência: ${"{competency}"}\nValor: ${"{value}"}\nVencimento: ${"{due_date}"}\n\nQualquer dúvida estamos por aqui!`,
-  low_freq: (n) => `E aí ${n}, sentimos sua falta no tatame! 🥋\n\nSua frequência do último mês está em ${"{frequency_pct}"}%. Bora voltar? Nos avisa se está tudo bem por aí.\n\nEquipe CT Warrior`,
-  graduation: (n) => `Parabéns ${n}! 🥋\n\nVocê já está há ${"{days_on_belt}"} dias na faixa ${"{belt_name}"} de ${"{modality_name}"} e pode estar próximo da próxima graduação. Fale com o professor!\n\nEquipe CT Warrior`,
+  overdue: (n) => `Olá ${n}! Aqui é da sua academia 🥋\n\nVimos que sua mensalidade de ${"{competency}"} (${"{value}"}) está em atraso há ${"{days_late}"} dias. Podemos combinar o pagamento? Estamos à disposição!\n\nEquipe da academia`,
+  upcoming: (n) => `Olá ${n}! Passando para lembrar da sua mensalidade 🥋\n\nCompetência: ${"{competency}"}\nValor: ${"{value}"}\nVencimento: ${"{due_date}"}\n\nQualquer dúvida estamos por aqui!`,
+  low_freq: (n) => `E aí ${n}, sentimos sua falta no tatame! 🥋\n\nSua frequência do último mês está em ${"{frequency_pct}"}%. Bora voltar? Nos avisa se está tudo bem por aí.\n\nEquipe da academia`,
+  graduation: (n) => `Parabéns ${n}! 🥋\n\nVocê já está há ${"{days_on_belt}"} dias na faixa ${"{belt_name}"} de ${"{modality_name}"} e pode estar próximo da próxima graduação. Fale com o professor!\n\nEquipe da academia`,
 };
 
 export default function Notifications() {

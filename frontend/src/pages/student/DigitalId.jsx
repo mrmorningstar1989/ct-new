@@ -60,7 +60,7 @@ export default function StudentDigitalId() {
                   <span className="font-heading text-white text-2xl leading-none">{(academy.name || "W")[0].toUpperCase()}</span>
                 </div>
               )}
-              <div className="font-heading text-xl leading-none">{(academy.name || "CT WARRIOR").toUpperCase()}</div>
+              <div className="font-heading text-xl leading-none">{(academy.name || "ZENKAIOS").toUpperCase()}</div>
               <div className="text-[9px] uppercase tracking-widest text-zinc-500 mt-1">Digital ID</div>
             </div>
             <div className="text-right">

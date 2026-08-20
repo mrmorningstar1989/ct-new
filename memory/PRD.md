@@ -1,11 +1,11 @@
-# CT Warrior - Sistema de Gestão de Academia de Artes Marciais
+# ZenkaiOS - Sistema de Gestão de Academia de Artes Marciais
 
 ## Original Problem Statement
 Sistema web completo, moderno, responsivo e profissional para gerenciamento de academias de artes marciais e lutas, com módulos integrados: alunos, professores, modalidades, turmas, matrículas, presença, graduação, financeiro, Área do Aluno, dashboards, relatórios e permissões. Suporte a múltiplas modalidades (Jiu-Jitsu, Muay Thai, Judô, Boxe, MMA etc) com sistema de graduação por modalidade.
 
 ## User Choices
 - Autenticação: JWT customizado (email/senha), 3 perfis (Admin, Professor, Aluno)
-- Cores: Vermelho, preto e branco (logo do CT)
+- Cores: Vermelho, preto e branco (logo da ZenkaiOS)
 - Idioma: Português (Brasil)
 - Multiacademia: estrutura preparada (academy_id), 1 academia default no MVP
 - Admin: brunodorettom@gmail.com

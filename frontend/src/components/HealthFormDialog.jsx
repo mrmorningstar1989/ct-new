@@ -223,7 +223,7 @@ function generateHealthPdf(student, parq, ana, academy = {}) {
     } catch { /* ignore */ }
   }
 
-  const name = (academy.name || "CT WARRIOR").toUpperCase();
+  const name = (academy.name || "ZENKAIOS").toUpperCase();
   doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(20, 20, 20);
   doc.text(name, leftPad, 50);
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
@@ -329,7 +329,7 @@ function generateHealthPdf(student, parq, ana, academy = {}) {
   y = doc.lastAutoTable.finalY + 24;
   if (y > H - 160) { doc.addPage(); y = 60; }
   doc.setFont("helvetica", "italic"); doc.setFontSize(8.5); doc.setTextColor(70, 70, 70);
-  const decl = "Declaro que as informações prestadas neste formulário são verdadeiras e assumo total responsabilidade pelas mesmas. Estou ciente dos riscos inerentes à prática de artes marciais e autorizo minha participação nas aulas do CT Warrior.";
+  const decl = "Declaro que as informações prestadas neste formulário são verdadeiras e assumo total responsabilidade pelas mesmas. Estou ciente dos riscos inerentes à prática de artes marciais e autorizo minha participação nas aulas da academia.";
   const declLines = doc.splitTextToSize(decl, W - 2 * M);
   doc.text(declLines, M, y);
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 export default function Login() {
   const { user, login } = useAuth();
+  const { academySlug } = useParams();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +27,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const res = await login(email, password);
+    const res = await login(email, password, academySlug);
     setLoading(false);
     if (!res.ok) {
       setError(res.error);
@@ -50,14 +51,12 @@ export default function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
         <div className="relative z-10 flex flex-col justify-end p-12">
-          <div className="w-12 h-12 bg-red-600 flex items-center justify-center mb-6">
-            <span className="font-heading text-white text-3xl leading-none">W</span>
-          </div>
           <h1 className="font-heading text-6xl leading-none mb-4">
-            FORJAMOS<br />CAMPEÕES.
+            FORMAMOS<br />CAMPEÕES.
           </h1>
+          <img src="/brand/zenkaios-logo.png" alt="ZenkaiOS" className="mb-5 w-64 max-w-full" />
           <p className="text-zinc-300 max-w-md">
-            Plataforma de gestão do CT Warrior. Alunos, professores, faixas, presença e financeiro em um só lugar.
+            Gestão completa. Evolução constante. Sua academia, seu legado.
           </p>
         </div>
       </div>
@@ -66,12 +65,9 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6" data-testid="login-form">
           <div>
             <div className="flex items-center gap-3 lg:hidden mb-8">
-              <div className="w-10 h-10 bg-red-600 flex items-center justify-center">
-                <span className="font-heading text-white text-2xl leading-none">W</span>
-              </div>
-              <div className="font-heading text-2xl">CT WARRIOR</div>
+              <img src="/brand/zenkaios-logo.png" alt="ZenkaiOS" className="h-12 w-auto" />
             </div>
-            <div className="text-xs uppercase tracking-widest text-red-500 mb-2">Acesso Restrito</div>
+            <div className="text-xs uppercase tracking-widest text-red-500 mb-2">{academySlug ? `Academia: ${academySlug}` : "Acesso da plataforma"}</div>
             <h2 className="font-heading text-4xl mb-2">Entrar</h2>
             <p className="text-sm text-zinc-400">Use seu email e senha para acessar o painel</p>
           </div>
@@ -116,8 +112,14 @@ export default function Login() {
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENTRAR"}
           </Button>
 
+          {academySlug && (
+            <Button asChild variant="outline" className="w-full h-11 rounded-none border-zinc-700 hover:border-red-600 hover:text-red-500">
+              <Link to={`/a/${academySlug}/cadastre-se`}>CADASTRE-SE COMO ALUNO</Link>
+            </Button>
+          )}
+
           <div className="pt-4 text-xs text-zinc-500 border-t border-zinc-900">
-            Dica: use as credenciais de administrador definidas no ambiente para primeiro acesso.
+            {academySlug ? "Ainda não é aluno? Faça seu cadastro e complete a ficha de matrícula." : "Acesso reservado à administração da plataforma."}
           </div>
         </form>
       </div>
